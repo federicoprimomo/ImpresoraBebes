@@ -134,11 +134,27 @@ driver de Windows/Mac ni nada de HP aparte de eso.
 
 ### Ajuste de la imagen a la hoja
 
-El código ya manda cada impresión con `-o fit-to-page -o media=A4`, y
-además la imagen se genera en formato vertical (1024×1536, ver
-`IMAGE_SIZE` en `.env`) en vez de cuadrada, porque esa proporción se
-parece más a una hoja A4 — así aprovecha más la hoja y deja menos franja
-blanca arriba/abajo que con una imagen cuadrada.
+Que el dibujo ocupe bien la hoja depende de tres cosas, no solo de una:
+
+1. **Proporción de la imagen generada**: se pide vertical (1024×1536, ver
+   `IMAGE_SIZE` en `.env`) en vez de cuadrada, porque se parece más a una
+   hoja A4.
+2. **Recorte automático del margen blanco** (`app/imagegen.py`,
+   `_trim_whitespace`): esta es la parte importante que se me había
+   pasado al principio. Aunque la imagen tenga la proporción justa, el
+   modelo puede devolver el dibujo chico y centrado con mucho borde blanco
+   alrededor — y ese borde blanco, para la impresora, es "parte del
+   dibujo", así que ni el tamaño de imagen ni el `fit-to-page` lo
+   arreglan solos. Por eso, antes de guardar cada imagen generada, se
+   recortan automáticamente los márgenes blancos hasta el contenido real
+   del dibujo (con un colchón chico alrededor para que no quede pegado al
+   borde de la hoja). El prompt también le pide al modelo que dibuje
+   grande y llene el cuadro, pero el recorte es lo que lo garantiza pase
+   lo que pase.
+3. **`fit-to-page` al imprimir** (`-o fit-to-page -o media=A4` en Linux, o
+   el escalado equivalente en `printer_windows.py`): ya con el dibujo
+   recortado a su contenido real, esto lo agranda hasta ocupar el máximo
+   de la hoja A4 posible sin cortar nada, manteniendo la proporción.
 
 ## 4. Cola de impresión que se limpia sola
 
