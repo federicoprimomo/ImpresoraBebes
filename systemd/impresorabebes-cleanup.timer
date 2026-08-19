@@ -1,0 +1,10 @@
+[Unit]
+Description=Corre la limpieza de la cola de impresion cada 10 minutos
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+Unit=impresorabebes-cleanup.service
+
+[Install]
+WantedBy=timers.target

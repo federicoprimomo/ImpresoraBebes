@@ -83,31 +83,79 @@ python -m sounddevice
 Anotá el nombre/índice del micrófono USB y, si hace falta, ponelo en
 `AUDIO_INPUT_DEVICE` del `.env`.
 
-## 3. Impresora (CUPS)
+## 3. Impresora (HP LaserJet Pro M12, CUPS)
 
-1. Conectá la impresora HP por USB y encendela.
-2. Entrá a la interfaz de CUPS desde un navegador: `http://localhost:631`
-   (o desde otra máquina en la misma red: `http://<ip-de-la-pi>:631`, si
-   habilitaste acceso remoto).
-3. `Administration` → `Add Printer`, elegí la HP detectada por USB, y
-   seguí el asistente (el driver `hpcups` que instalamos con `hplip` suele
-   detectarla sola).
-4. Anotá el **nombre de la cola** que le pusiste (por ejemplo `HP_LaserJet`)
-   y ponelo en `PRINTER_NAME` en el `.env`.
-5. Probalo por línea de comandos:
+La M12 es una impresora "de gama chica": no habla PostScript nativo, así
+que Linux la maneja a través de **HPLIP** (`hplip`, ya instalado por
+`scripts/setup_pi.sh`), que trae el driver `hpcups`. No hace falta ningún
+driver de Windows/Mac ni nada de HP aparte de eso.
+
+1. Conectá la impresora por USB y encendela.
+2. Corré el asistente de HPLIP, que detecta el modelo solo y agrega la cola
+   en CUPS:
+   ```bash
+   hp-setup -i
+   ```
+   Si te pide instalar un "plugin" propietario de HP (pasa con algunos
+   modelos, sobre todo si tienen wifi), aceptá — lo descarga e instala
+   `hp-plugin`.
+3. Alternativa manual, si preferís no usar el asistente:
+   ```bash
+   lpinfo -v                 # buscá una línea "usb://HP/LaserJet%20MFP%20M12..."
+   sudo lpadmin -p HP_LaserJet -E -v "usb://HP/LaserJet%20..." -m everywhere
+   ```
+   O por la interfaz web de CUPS: `http://localhost:631` →
+   `Administration` → `Add Printer`.
+4. Anotá el **nombre de la cola** que quedó (por ejemplo `HP_LaserJet`) y
+   ponelo en `PRINTER_NAME` en el `.env`:
    ```bash
    lpstat -p -d
-   lp -d HP_LaserJet -o fit-to-page algún_archivo.png
+   ```
+5. Corré el script que deja la cola configurada con `fit-to-page`, A4 y la
+   política de error que evita que se acumulen trabajos colgados (ver
+   sección siguiente):
+   ```bash
+   bash scripts/configure_printer.sh
+   ```
+6. Probalo:
+   ```bash
+   lp -d HP_LaserJet -o fit-to-page -o media=A4 algún_archivo.png
    ```
 
-Si preferís la vía rápida por terminal en vez de la web de CUPS:
+### Ajuste de la imagen a la hoja
 
-```bash
-lpinfo -v                 # lista impresoras detectadas, buscá una línea "usb://HP/..."
-sudo lpadmin -p HP_LaserJet -E -v "usb://HP/LaserJet%20..." -m everywhere
-```
+El código ya manda cada impresión con `-o fit-to-page -o media=A4`, y
+además la imagen se genera en formato vertical (1024×1536, ver
+`IMAGE_SIZE` en `.env`) en vez de cuadrada, porque esa proporción se
+parece más a una hoja A4 — así aprovecha más la hoja y deja menos franja
+blanca arriba/abajo que con una imagen cuadrada.
 
-## 4. Arranque automático
+## 4. Cola de impresión que se limpia sola
+
+Para que un problema de la impresora (sin papel, sin tóner, apagada,
+atascada) no vaya dejando dibujos acumulados en la cola, hay tres capas:
+
+1. **Por trabajo**: `app/printer.py` espera a que el trabajo salga de la
+   cola después de mandarlo (`PRINT_TIMEOUT_SECONDS` en `.env`, 25s por
+   defecto). Si no sale a tiempo, lo cancela solo y la pantalla muestra un
+   error en vez de quedarse esperando.
+2. **Al arrancar**: `app/main.py` purga cualquier trabajo que haya quedado
+   pendiente de un reinicio anterior (por ejemplo, un corte de luz con la
+   impresora offline).
+3. **Timer periódico** (red de seguridad extra, cada 10 minutos):
+   ```bash
+   sudo cp systemd/impresorabebes-cleanup.service /etc/systemd/system/
+   sudo cp systemd/impresorabebes-cleanup.timer /etc/systemd/system/
+   sudo nano /etc/systemd/system/impresorabebes-cleanup.service  # ajustá User/WorkingDirectory si hace falta
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now impresorabebes-cleanup.timer
+   ```
+
+Además, `scripts/configure_printer.sh` (paso 5 de arriba) le pone a la
+cola `printer-error-policy=abort-job`, para que CUPS mismo cancele un
+trabajo que falla en vez de reintentarlo sin parar.
+
+## 5. Arranque automático
 
 ### Backend (botones + servidor web)
 
@@ -137,7 +185,7 @@ escritorio** (`raspi-config` → `System Options` → `Boot / Auto Login` →
 Reiniciá (`sudo reboot`) y debería levantar todo solo: backend + navegador
 en pantalla completa mostrando la app.
 
-## 5. Probarlo sin reiniciar
+## 6. Probarlo sin reiniciar
 
 ```bash
 source venv/bin/activate
@@ -158,15 +206,16 @@ app/
   speech.py       transcripción de audio -> texto (OpenAI Whisper)
   moderation.py   chequeo de contenido antes de generar la imagen
   imagegen.py     generación del dibujo para colorear (OpenAI gpt-image-1)
-  printer.py      envío a imprimir vía CUPS (`lp`)
+  printer.py      envío a imprimir vía CUPS (`lp`) + limpieza de la cola
+  printer_cleanup.py  tarea corta para el timer periódico de limpieza
   state.py        estado compartido + notificación a la pantalla (SSE)
   web.py          servidor Flask que sirve la pantalla del kiosco
 web/
   templates/index.html   pantalla que ven los chicos
   static/css, static/js  estilos y lógica de la pantalla (se actualiza sola)
   static/generated/      dibujos generados (no se versionan en git)
-systemd/          unit de systemd + autostart del navegador en kiosco
-scripts/          instalación y arranque del kiosco
+systemd/          units de systemd (backend, limpieza de cola) + autostart del navegador en kiosco
+scripts/          instalación, configuración de la impresora y arranque del kiosco
 ```
 
 ## Costos y uso de la API

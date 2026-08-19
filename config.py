@@ -29,12 +29,21 @@ RECORD_MAX_SECONDS = float(os.getenv("RECORD_MAX_SECONDS", "8"))
 AUDIO_INPUT_DEVICE = os.getenv("AUDIO_INPUT_DEVICE") or None
 SAMPLE_RATE = int(os.getenv("SAMPLE_RATE", "16000"))
 
-IMAGE_SIZE = os.getenv("IMAGE_SIZE", "1024x1024")
+# Vertical (1024x1536) en vez de cuadrado: se parece más a la proporción de
+# una hoja A4, así que al imprimir con fit-to-page aprovecha más la hoja
+# (menos franjas blancas arriba/abajo). gpt-image-1 solo acepta
+# "1024x1024", "1024x1536", "1536x1024" o "auto".
+IMAGE_SIZE = os.getenv("IMAGE_SIZE", "1024x1536")
 
 WEB_PORT = int(os.getenv("WEB_PORT", "5000"))
 WEB_HOST = os.getenv("WEB_HOST", "127.0.0.1")
 
 PRINT_COOLDOWN_SECONDS = float(os.getenv("PRINT_COOLDOWN_SECONDS", "5"))
+
+# Cuánto esperar a que la impresora confirme un trabajo antes de darlo por
+# colgado y cancelarlo (para no acumular dibujos en la cola si la
+# impresora está sin papel, apagada, atascada, etc.)
+PRINT_TIMEOUT_SECONDS = float(os.getenv("PRINT_TIMEOUT_SECONDS", "25"))
 
 GENERATED_DIR = BASE_DIR / "web" / "static" / "generated"
 RECORDINGS_DIR = BASE_DIR / "recordings"

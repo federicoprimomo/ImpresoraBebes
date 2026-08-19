@@ -166,6 +166,10 @@ def main() -> None:
             "(ver .env.example) antes de usar los botones."
         )
 
+    purged = printer.purge_stale_queue()
+    if purged:
+        log.info("Se limpiaron %d trabajo(s) colgado(s) de la cola al arrancar.", purged)
+
     setup_buttons(on_record_pressed, on_record_released, on_print_pressed)
     log.info(
         "Botones listos. Grabar=GPIO%s, Imprimir=GPIO%s",

@@ -1,0 +1,9 @@
+[Unit]
+Description=Limpieza de trabajos colgados en la cola de impresion
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/ImpresoraBebes
+EnvironmentFile=/home/pi/ImpresoraBebes/.env
+ExecStart=/home/pi/ImpresoraBebes/venv/bin/python -m app.printer_cleanup
