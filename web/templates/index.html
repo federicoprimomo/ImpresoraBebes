@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Dibujos Mágicos</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div id="app" data-status="{{ initial_state.status }}">
+    <div class="icon" id="icon">✏️</div>
+    <h1 id="message">{{ initial_state.message or 'Apretá el botón y decime qué querés dibujar' }}</h1>
+    <p id="heard" class="heard">{{ initial_state.heard_text }}</p>
+    <div class="image-wrap" id="image-wrap">
+      <img id="drawing" src="{{ initial_state.image_url or '' }}" alt="Dibujo generado"
+           style="{{ 'display:block' if initial_state.image_url else 'display:none' }}">
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

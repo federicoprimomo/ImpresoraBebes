@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Impresora de Dibujos Magicos (kiosco)
+Comment=Abre el navegador en pantalla completa apuntando a la app local
+Exec=/home/pi/ImpresoraBebes/scripts/start_kiosk.sh
+X-GNOME-Autostart-enabled=true
+NoDisplay=false

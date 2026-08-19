@@ -1,0 +1,10 @@
+.env
+venv/
+__pycache__/
+*.pyc
+web/static/generated/*.png
+web/static/generated/*.jpg
+web/static/generated/*.wav
+!web/static/generated/.gitkeep
+recordings/
+*.wav
