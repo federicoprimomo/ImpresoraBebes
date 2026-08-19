@@ -17,11 +17,21 @@ manden a imprimir en la impresora láser HP.
    tema.
 5. El dibujo aparece en pantalla completa.
 6. **Botón 2 (imprimir)**: manda el dibujo a la impresora láser HP conectada
-   por USB, vía CUPS.
+   por USB, vía CUPS. Antes de intentarlo, el sistema ya sabe si la
+   impresora está lista o no (chequeo periódico en segundo plano, se ve
+   como un cartelito 🖨️ arriba a la derecha de la pantalla) y avisa al
+   toque si está offline en vez de hacerte esperar.
 
 Todo el flujo corre local en la Raspberry Pi, salvo las dos llamadas a la
 API de OpenAI (transcripción y generación de imagen), que necesitan
 internet.
+
+Los botones **físicos son opcionales**: además de los pulsadores GPIO, la
+pantalla siempre acepta controles de teclado (mantener **espacio** = botón
+1, **Enter** = botón 2) — sirven para probar todo el flujo en cualquier PC
+sin tener la Raspberry Pi ni los botones armados (ver sección "Probar en
+Windows o en una PC sin la Raspberry Pi" más abajo), y también quedan
+como respaldo si algún botón físico se rompe.
 
 > ⚠️ **Este proyecto no se probó sobre hardware real** (se generó en un
 > entorno sin acceso a una Raspberry Pi física). Es un punto de partida
@@ -195,21 +205,69 @@ chromium-browser --kiosk http://127.0.0.1:5000
 ```
 
 Apretá el botón 1, decí algo, soltalo, esperá el dibujo, apretá el botón 2.
+(Si no tenés los botones armados todavía, usá el teclado: mantené
+**espacio** en vez del botón 1, **Enter** en vez del botón 2 — ver sección
+siguiente.)
+
+## 7. Probar en Windows o en una PC sin la Raspberry Pi
+
+Todo el proyecto corre igual en Windows — la única diferencia es que ahí no
+hay pines GPIO, así que los botones físicos se reemplazan por teclado, y la
+impresión no usa CUPS sino la API nativa de impresión de Windows.
+
+1. Instalá Python 3.11+ y cloná el repo.
+2. Creá el entorno e instalá dependencias (en Windows, `pip` instala
+   automáticamente `pywin32` en vez de `gpiozero`, gracias a los
+   marcadores de plataforma en `requirements.txt`):
+   ```powershell
+   python -m venv venv
+   venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+3. Copiá `.env.example` a `.env` y completá `OPENAI_API_KEY`.
+4. **Impresora**: dejá `PRINTER_NAME` vacío para usar la impresora
+   predeterminada de Windows, o poné el nombre exacto de otra impresora tal
+   como figura en `Configuración → Bluetooth y dispositivos → Impresoras y
+   escáneres` (o con PowerShell: `Get-Printer | Select Name`).
+5. Corré la app:
+   ```powershell
+   python -m app.main
+   ```
+   Al arrancar vas a ver en la consola un aviso de que gpiozero no está
+   disponible — es esperado, no es un error: significa que quedó
+   funcionando solo con teclado/pantalla.
+6. Abrí `http://127.0.0.1:5000` en el navegador. Mantené apretada la
+   **barra espaciadora** para grabar (necesita micrófono en la PC), soltala
+   para que transcriba y genere el dibujo, y apretá **Enter** para
+   imprimirlo en la impresora de Windows.
+
+Esto sirve para probar y ajustar todo el flujo (voz → dibujo → impresión)
+sin depender de tener la Raspberry Pi armada. El despliegue final para los
+chicos sigue siendo la Raspberry Pi con los botones físicos + CUPS, tal
+como está descripto en las secciones anteriores.
 
 ## Estructura del proyecto
 
 ```
 app/
-  main.py         orquestador: conecta botones, estado y el flujo completo
-  gpio_buttons.py configuración de los dos pulsadores (gpiozero)
+  main.py         arranque: botones, watcher de impresora y servidor web
+  controller.py   la lógica del flujo en sí (botones físicos, teclado y
+                   HTTP llaman a las mismas funciones acá)
+  gpio_buttons.py configuración de los dos pulsadores (gpiozero); si no hay
+                   GPIO disponible (Windows, PC de desarrollo) no rompe,
+                   solo deshabilita los botones físicos
   audio.py        grabación push-to-talk del micrófono
   speech.py       transcripción de audio -> texto (OpenAI Whisper)
   moderation.py   chequeo de contenido antes de generar la imagen
   imagegen.py     generación del dibujo para colorear (OpenAI gpt-image-1)
-  printer.py      envío a imprimir vía CUPS (`lp`) + limpieza de la cola
-  printer_cleanup.py  tarea corta para el timer periódico de limpieza
-  state.py        estado compartido + notificación a la pantalla (SSE)
-  web.py          servidor Flask que sirve la pantalla del kiosco
+  printer.py      elige el backend de impresión según el sistema operativo
+  printer_linux.py    impresión vía CUPS (`lp`) + limpieza de cola — Raspberry Pi
+  printer_windows.py  impresión nativa de Windows (pywin32) — para probar sin la Pi
+  printer_cleanup.py  tarea corta para el timer periódico de limpieza (Linux)
+  state.py        estado compartido (incluye si la impresora está lista) +
+                   notificación a la pantalla (SSE)
+  web.py          servidor Flask: sirve la pantalla y los endpoints de
+                   teclado (/api/record/start, /api/record/stop, /api/print)
 web/
   templates/index.html   pantalla que ven los chicos
   static/css, static/js  estilos y lógica de la pantalla (se actualiza sola)
@@ -256,3 +314,12 @@ podés supervisar la pantalla antes de dejarlos apretar "imprimir".
 - **Chromium no abre en kiosco al bootear**: confirmá el autologin de
   escritorio en `raspi-config` y que la ruta `Exec=` del `.desktop` sea
   correcta.
+- **El cartelito 🖨️ de la pantalla dice "no lista" todo el tiempo**: en
+  Linux, corré `lpstat -p $PRINTER_NAME` a mano y fijate qué dice CUPS
+  (pausada, sin papel, offline). En Windows, `Get-Printer` en PowerShell
+  muestra el estado, y confirmá que `PRINTER_NAME` en `.env` coincida
+  exactamente con el nombre real (o dejalo vacío para usar la
+  predeterminada).
+- **En Windows tira error de pywin32 al imprimir**: confirmá que
+  `pip install -r requirements.txt` haya corrido en Windows (no reusando un
+  venv creado en Linux) — ahí es donde se instala `pywin32` automáticamente.

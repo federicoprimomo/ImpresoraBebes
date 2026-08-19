@@ -27,6 +27,9 @@ class AppState:
     message: str = ""
     heard_text: str = ""
     image_url: Optional[str] = None
+    # None = todavía no se chequeó; True/False = resultado del último chequeo
+    # periódico de si la impresora está lista (ver app/controller.py).
+    printer_online: Optional[bool] = None
     updated_at: float = field(default_factory=time.time)
 
     def as_dict(self) -> dict:

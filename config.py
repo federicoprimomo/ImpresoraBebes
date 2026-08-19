@@ -45,6 +45,11 @@ PRINT_COOLDOWN_SECONDS = float(os.getenv("PRINT_COOLDOWN_SECONDS", "5"))
 # impresora está sin papel, apagada, atascada, etc.)
 PRINT_TIMEOUT_SECONDS = float(os.getenv("PRINT_TIMEOUT_SECONDS", "25"))
 
+# Cada cuánto se chequea en segundo plano si la impresora está lista
+# (online, con papel/tóner), para avisar en pantalla antes de que intenten
+# imprimir en vez de que se enteren recién al fallar.
+PRINTER_STATUS_POLL_SECONDS = float(os.getenv("PRINTER_STATUS_POLL_SECONDS", "15"))
+
 GENERATED_DIR = BASE_DIR / "web" / "static" / "generated"
 RECORDINGS_DIR = BASE_DIR / "recordings"
 

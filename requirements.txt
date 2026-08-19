@@ -1,8 +1,16 @@
 openai>=1.40.0
 flask>=3.0.0
-gpiozero>=2.0.1
 sounddevice>=0.4.6
 soundfile>=0.12.1
 numpy>=1.26.0
 Pillow>=10.0.0
 python-dotenv>=1.0.0
+
+# Botones físicos por GPIO: solo tiene sentido en la Raspberry Pi. En otras
+# plataformas (Windows, Mac) simplemente no se puede usar y el sistema cae
+# solo al modo teclado/pantalla (ver app/gpio_buttons.py), así que no hace
+# falta que la instalación falle si el paquete no se puede compilar ahí.
+gpiozero>=2.0.1; sys_platform == "linux"
+
+# Impresión nativa de Windows (probar el flujo sin la Raspberry Pi).
+pywin32>=306; sys_platform == "win32"

@@ -8,6 +8,9 @@
 </head>
 <body>
   <div id="app" data-status="{{ initial_state.status }}">
+    {% set printer_online_str = 'true' if initial_state.printer_online == True else ('false' if initial_state.printer_online == False else 'null') %}
+    <div id="printer-badge" class="printer-badge" data-online="{{ printer_online_str }}">🖨️ ...</div>
+
     <div class="icon" id="icon">✏️</div>
     <h1 id="message">{{ initial_state.message or 'Apretá el botón y decime qué querés dibujar' }}</h1>
     <p id="heard" class="heard">{{ initial_state.heard_text }}</p>
@@ -15,6 +18,10 @@
       <img id="drawing" src="{{ initial_state.image_url or '' }}" alt="Dibujo generado"
            style="{{ 'display:block' if initial_state.image_url else 'display:none' }}">
     </div>
+
+    <p class="keyboard-hint">
+      (modo prueba por teclado: mantené <kbd>espacio</kbd> para grabar, <kbd>Enter</kbd> para imprimir)
+    </p>
   </div>
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

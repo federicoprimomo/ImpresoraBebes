@@ -11,7 +11,7 @@ from pathlib import Path
 
 from flask import Flask, Response, render_template
 
-from app import state
+from app import controller, state
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -41,5 +41,25 @@ def create_web_app() -> Flask:
                 state.bus.unsubscribe(q)
 
         return Response(stream(), mimetype="text/event-stream")
+
+    # --- Controles de teclado, para probar sin los botones físicos ---
+    # (también sirven como control alternativo en la Raspberry Pi si algún
+    # botón físico falla). Mantener apretada la barra espaciadora = botón 1,
+    # Enter = botón 2. Ver web/static/js/app.js.
+
+    @app.route("/api/record/start", methods=["POST"])
+    def api_record_start():
+        controller.on_record_pressed()
+        return ("", 204)
+
+    @app.route("/api/record/stop", methods=["POST"])
+    def api_record_stop():
+        controller.on_record_released()
+        return ("", 204)
+
+    @app.route("/api/print", methods=["POST"])
+    def api_print():
+        controller.on_print_pressed()
+        return ("", 204)
 
     return app
