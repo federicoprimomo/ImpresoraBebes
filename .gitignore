@@ -8,3 +8,4 @@ web/static/generated/*.wav
 !web/static/generated/.gitkeep
 recordings/
 *.wav
+search_usage.json

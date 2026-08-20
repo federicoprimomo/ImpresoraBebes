@@ -60,3 +60,16 @@ RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 STT_MODEL = os.getenv("STT_MODEL", "whisper-1")
 IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gpt-image-1")
 TRANSCRIPTION_LANGUAGE = os.getenv("TRANSCRIPTION_LANGUAGE", "es")
+
+# De dónde sale el dibujo: "generate" (IA, gpt-image-1, tiene costo por
+# imagen) o "search" (Google Imágenes, gratis dentro de la cuota diaria).
+# Ver README, sección "Buscar en vez de generar (gratis)".
+IMAGE_SOURCE = os.getenv("IMAGE_SOURCE", "generate")
+
+# Solo hacen falta si IMAGE_SOURCE=search.
+GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY", "")
+GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID", "")
+
+# Techo propio de búsquedas por día, además de la cuota gratis real de
+# Google (100/día). Ponelo en 100 o menos para no acercarte al límite real.
+SEARCH_DAILY_LIMIT = int(os.getenv("SEARCH_DAILY_LIMIT", "100"))

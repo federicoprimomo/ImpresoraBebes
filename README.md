@@ -262,6 +262,61 @@ sin depender de tener la Raspberry Pi armada. El despliegue final para los
 chicos sigue siendo la Raspberry Pi con los botones físicos + CUPS, tal
 como está descripto en las secciones anteriores.
 
+## 8. Buscar en vez de generar (gratis)
+
+En vez de generar cada dibujo con IA (que tiene costo por imagen), podés
+configurar el sistema para que **busque un dibujo para colorear ya
+existente en Google Imágenes** — gratis, dentro de una cuota diaria.
+
+Lo que se pierde con esta opción: no podés pedir combinaciones inventadas
+("Spiderman tomando mate") — busca lo que ya exista publicado en internet
+con esas palabras. Lo que se gana: no cuesta nada por imagen (solo sigue
+teniendo costo, chico, la transcripción de voz con Whisper).
+
+### Cómo se elige
+
+Es un simple switch en el `.env`:
+
+```bash
+IMAGE_SOURCE=generate   # como hasta ahora (gpt-image-1, con costo)
+IMAGE_SOURCE=search     # Google Imágenes (gratis dentro de la cuota)
+```
+
+### Setup de la búsqueda (una sola vez)
+
+La única forma soportada de buscar en Google por código es la **Custom
+Search JSON API** (no se scrapea Google directamente: viola sus términos
+de uso y es frágil). Tiene **100 búsquedas gratis por día**; superada esa
+cuota, si **no habilitaste facturación** en el proyecto de Google Cloud,
+las búsquedas simplemente fallan con error — nunca te cobra un centavo.
+Para un uso de 2 chicos jugando en casa, 100/día alcanza de sobra.
+
+1. Andá a [Programmable Search Engine](https://programmablesearchengine.google.com/)
+   y creá un motor de búsqueda nuevo:
+   - "Sites to search": elegí buscar en toda la web.
+   - Activá la opción "Image search".
+2. Copiá el **Search engine ID** (`cx`) que te da, y ponelo en
+   `GOOGLE_SEARCH_ENGINE_ID` en el `.env`.
+3. Andá a la [consola de Google Cloud](https://console.cloud.google.com/),
+   creá (o usá) un proyecto, habilitá la **"Custom Search API"**, y creá
+   una **API key** (`APIs & Services → Credentials`).
+   - **Importante**: no le asocies una cuenta de facturación a este
+     proyecto si querés la garantía de $0 — así, pasada la cuota gratis,
+     las búsquedas fallan en vez de cobrarte.
+4. Copiá esa API key en `GOOGLE_SEARCH_API_KEY` en el `.env`.
+5. Poné `IMAGE_SOURCE=search`.
+
+### Cómo elige el dibujo
+
+Para cada pedido, `app/imagesearch.py` arma la búsqueda agregando términos
+como `coloring page black and white line art` a lo que dijo el chico (así
+prioriza dibujos de línea en vez de fotos), activa SafeSearch, y de los
+primeros resultados descarta los que no sean mayormente blanco y negro
+(heurística simple sobre los píxeles) hasta encontrar uno que sí lo sea.
+Si no encuentra ninguno, o si se acabó la cuota del día, la pantalla lo
+avisa y no imprime nada — **no hay fallback automático a la generación con
+IA**, justamente para no terminar gastando de la API paga sin querer.
+
 ## Estructura del proyecto
 
 ```
@@ -275,7 +330,9 @@ app/
   audio.py        grabación push-to-talk del micrófono
   speech.py       transcripción de audio -> texto (OpenAI Whisper)
   moderation.py   chequeo de contenido antes de generar la imagen
-  imagegen.py     generación del dibujo para colorear (OpenAI gpt-image-1)
+  imagegen.py     fuente 1: generación del dibujo con IA (OpenAI gpt-image-1)
+  imagesearch.py  fuente 2: búsqueda del dibujo en Google Imágenes (gratis)
+  imageutil.py    recorte de márgenes blancos, compartido por ambas fuentes
   printer.py      elige el backend de impresión según el sistema operativo
   printer_linux.py    impresión vía CUPS (`lp`) + limpieza de cola — Raspberry Pi
   printer_windows.py  impresión nativa de Windows (pywin32) — para probar sin la Pi
@@ -311,9 +368,20 @@ rápido. Sugerencias:
 
 Como el pedido lo arma libremente un chico por voz, además de los filtros
 propios de las APIs de OpenAI, el texto transcripto pasa por el endpoint de
-moderación antes de generar nada. Si por algún motivo se genera un dibujo
-que no te convence, el botón de imprimir es un paso aparte y separado —
-podés supervisar la pantalla antes de dejarlos apretar "imprimir".
+moderación antes de generar nada (aplica con `IMAGE_SOURCE=generate` y con
+`IMAGE_SOURCE=search`, porque filtra el texto del pedido, no la imagen).
+Con `IMAGE_SOURCE=search` además se activa SafeSearch de Google en cada
+búsqueda. Si por algún motivo aparece un dibujo que no te convence, el
+botón de imprimir es un paso aparte y separado — podés supervisar la
+pantalla antes de dejarlos apretar "imprimir".
+
+Nota sobre copyright: con `IMAGE_SOURCE=generate`, el dibujo es una imagen
+100% nueva creada por IA, no una reproducción de arte oficial de ningún
+personaje. Con `IMAGE_SOURCE=search`, en cambio, vas a estar mostrando e
+imprimiendo imágenes reales de la web (que sí pueden tener copyright, por
+ejemplo si buscan un personaje de Marvel/Disney) — para uso personal y no
+comercial en casa es lo mismo que buscar "spiderman para colorear" a mano
+y mandarlo a imprimir, una actividad perfectamente normal.
 
 ## Problemas comunes
 

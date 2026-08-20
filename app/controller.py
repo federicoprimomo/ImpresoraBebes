@@ -12,7 +12,7 @@ import threading
 import time
 
 import config
-from app import audio, imagegen, moderation, printer, speech, state
+from app import audio, imagegen, imagesearch, moderation, printer, speech, state
 
 log = logging.getLogger("impresorabebes.controller")
 
@@ -100,8 +100,9 @@ def _process_recording(audio_path) -> None:
                 _back_to_idle_after(3)
                 return
 
-            state.bus.set(status=state.GENERATING, message=f"Estoy dibujando: {text}...")
-            image_path = imagegen.generate_coloring_page(text)
+            busy_message = f"Estoy dibujando: {text}..." if config.IMAGE_SOURCE != "search" else f"Buscando: {text}..."
+            state.bus.set(status=state.GENERATING, message=busy_message)
+            image_path = _get_drawing(text)
 
             global _last_image_path
             _last_image_path = image_path
@@ -112,10 +113,25 @@ def _process_recording(audio_path) -> None:
                 message="¡Listo! Apretá el otro botón para imprimirlo.",
                 image_url=image_url,
             )
+        except imagesearch.QuotaExceeded:
+            log.warning("Cuota de búsquedas agotada por hoy.")
+            state.bus.set(status=state.ERROR, message="Se terminaron las búsquedas gratis de hoy. ¡Probamos mañana!")
+            _back_to_idle_after(4)
+        except imagesearch.NoResultsFound:
+            log.info("Búsqueda sin resultados aceptables para: %r", text)
+            state.bus.set(status=state.ERROR, message="No encontré ese dibujo. ¡Probá pedir otra cosa!")
+            _back_to_idle_after(3)
         except Exception:  # noqa: BLE001
             log.exception("Error procesando el pedido")
             state.bus.set(status=state.ERROR, message="Uy, algo falló. ¡Probemos de nuevo!")
             _back_to_idle_after(3)
+
+
+def _get_drawing(text: str):
+    """Consigue el dibujo por la fuente configurada (IMAGE_SOURCE)."""
+    if config.IMAGE_SOURCE == "search":
+        return imagesearch.find_coloring_page(text)
+    return imagegen.generate_coloring_page(text)
 
 
 def _back_to_idle_after(seconds: float) -> None:
