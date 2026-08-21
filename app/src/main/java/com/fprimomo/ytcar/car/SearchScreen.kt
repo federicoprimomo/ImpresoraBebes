@@ -3,7 +3,6 @@ package com.fprimomo.ytcar.car
 import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
-import androidx.car.app.ScreenManager
 import androidx.car.app.model.Action
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
@@ -93,11 +92,10 @@ class SearchScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycl
     }
 
     private fun openVideo(item: StreamInfoItem) {
+        // Screen ya expone screenManager (equivalente a
+        // carContext.getCarService(ScreenManager::class.java)).
         screenManager.push(VideoScreen(carContext, item.url, item.name))
     }
-
-    private val screenManager: ScreenManager
-        get() = carContext.getCarService(ScreenManager::class.java)
 
     override fun onDestroy(owner: LifecycleOwner) {
         scope.coroutineContext[Job]?.cancel()

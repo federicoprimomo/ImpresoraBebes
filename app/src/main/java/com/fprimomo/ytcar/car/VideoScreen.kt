@@ -3,7 +3,6 @@ package com.fprimomo.ytcar.car
 import androidx.car.app.AppManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
-import androidx.car.app.ScreenManager
 import androidx.car.app.SurfaceCallback
 import androidx.car.app.SurfaceContainer
 import androidx.car.app.model.Action
@@ -153,9 +152,6 @@ class VideoScreen(
 
     private fun iconFor(resId: Int): CarIcon =
         CarIcon.Builder(IconCompat.createWithResource(carContext, resId)).build()
-
-    private val screenManager: ScreenManager
-        get() = carContext.getCarService(ScreenManager::class.java)
 
     override fun onDestroy(owner: LifecycleOwner) {
         scope.coroutineContext[Job]?.cancel()
