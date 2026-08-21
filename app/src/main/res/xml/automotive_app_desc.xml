@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Declara la categoria "navigation": es la unica categoria de Android Auto
+     que recibe acceso a una Surface de dibujo libre en la pantalla del auto. -->
+<automotiveApp>
+    <uses name="navigation" />
+</automotiveApp>

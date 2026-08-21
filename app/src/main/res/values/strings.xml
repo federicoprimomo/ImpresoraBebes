@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YT Car Player</string>
+    <string name="search_hint">Buscar en YouTube…</string>
+    <string name="action_search">Buscar</string>
+    <string name="loading">Cargando…</string>
+    <string name="search_error">Error al buscar: %1$s</string>
+    <string name="stream_error">No se pudo obtener el video</string>
+    <string name="car_loading_video">Cargando video…</string>
+    <string name="car_play">Reproducir</string>
+    <string name="car_pause">Pausar</string>
+    <string name="car_search_hint">Buscar…</string>
+</resources>
