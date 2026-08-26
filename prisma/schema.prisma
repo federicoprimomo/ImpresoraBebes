@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js (NextAuth) models — required shape for the Prisma adapter.
+// ---------------------------------------------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Domain models
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(USER)
+
+  // Datos de cobro del vendedor (para liberar el pago vía Mercado Pago).
+  mercadoPagoUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  listings       Listing[]      @relation("SellerListings")
+  ordersAsBuyer  Order[]        @relation("BuyerOrders")
+  ordersAsSeller Order[]        @relation("SellerOrders")
+  resolvedDisputes Dispute[]    @relation("ResolvedByAdmin")
+}
+
+enum ListingStatus {
+  ACTIVE // publicada, disponible para compra
+  RESERVED // hay una orden en curso sobre ella
+  SOLD // vendida y liberada
+  CANCELLED // el vendedor la dio de baja
+}
+
+model Listing {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  eventDate   DateTime?
+  priceArs    Int // precio base en ARS, en centavos para evitar floats
+  quantity    Int           @default(1)
+  status      ListingStatus @default(ACTIVE)
+
+  sellerId String
+  seller   User   @relation("SellerListings", fields: [sellerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+// Ciclo de vida completo de una compra con retención de pago (escrow).
+enum OrderStatus {
+  PENDING_PAYMENT // orden creada, esperando confirmación de pago de Mercado Pago
+  PAYMENT_HELD // pago acreditado y retenido, esperando que el vendedor entregue
+  DELIVERED // el vendedor subió el archivo de la entrada
+  RELEASED // pago liberado al vendedor (por confirmación, timeout, o resolución de disputa)
+  DISPUTED // el comprador abrió una disputa antes del timeout
+  REFUNDED // se reembolsó al comprador (por disputa resuelta a su favor)
+  CANCELLED // la orden se canceló antes de llegar a PAYMENT_HELD
+}
+
+model Order {
+  id     String @id @default(cuid())
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  buyerId  String
+  buyer    User   @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  sellerId String
+  seller   User   @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  status OrderStatus @default(PENDING_PAYMENT)
+
+  // Montos en centavos de ARS.
+  amountArs       Int
+  buyerFeeArs     Int @default(0) // comisión que paga el comprador (sumada al precio)
+  sellerFeeArs    Int @default(0) // comisión que se descuenta al vendedor al liberar
+  sellerPayoutArs Int? // monto final liquidado al vendedor (amount - sellerFee)
+
+  // Integración con Mercado Pago.
+  mpPreferenceId String?
+  mpPaymentId    String?
+
+  paidAt      DateTime? // cuándo se confirmó el pago (webhook de MP)
+  deliveredAt DateTime? // cuándo el vendedor subió el archivo
+  downloadedAt DateTime? // cuándo el comprador descargó el archivo (dispara el timeout)
+  releaseDueAt DateTime? // downloadedAt + ventana de disputa; el cron libera el pago pasado este momento
+  releasedAt  DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  delivery DeliveryFile?
+  dispute  Dispute?
+  commissionEntry CommissionLedgerEntry?
+}
+
+model DeliveryFile {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  // El archivo se guarda fuera de la base (blob storage); acá solo la referencia.
+  storageKey String
+  fileName   String
+  fileHash   String // sha256 del contenido, para detectar reventa duplicada de la misma entrada
+
+  uploadedAt DateTime @default(now())
+
+  @@index([fileHash])
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED_RELEASE // el admin decidió liberar el pago al vendedor
+  RESOLVED_REFUND // el admin decidió reembolsar al comprador
+}
+
+model Dispute {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  reason   String
+  evidence String? @db.Text
+
+  status DisputeStatus @default(OPEN)
+
+  resolvedById String?
+  resolvedBy   User?   @relation("ResolvedByAdmin", fields: [resolvedById], references: [id])
+  resolution   String? @db.Text
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+}
+
+// Registro de comisiones cobradas, para el panel de admin.
+model CommissionLedgerEntry {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  buyerFeeArs  Int
+  sellerFeeArs Int
+  totalFeeArs  Int
+
+  createdAt DateTime @default(now())
+}
