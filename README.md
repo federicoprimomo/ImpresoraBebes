@@ -1,4 +1,4 @@
-# Entrada Segura
+# Escrow.ar
 
 Marketplace de reventa de entradas digitales con **pago retenido (escrow)**:
 el comprador paga con tarjeta, el dinero queda **autorizado y retenido** en

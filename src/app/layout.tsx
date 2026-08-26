@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Entrada Segura",
+  title: "Escrow.ar",
   description:
     "Comprá y vendé entradas de reventa con el pago retenido hasta confirmar la entrega.",
 };
