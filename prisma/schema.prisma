@@ -222,14 +222,29 @@ model DeliveryFile {
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id])
 
-  // El archivo se guarda fuera de la base (blob storage); acá solo la referencia.
-  storageKey String
-  fileName   String
-  fileHash   String // sha256 del contenido, para detectar reventa duplicada de la misma entrada
+  // storageKey es una clave opaca hacia el backend de storage (ver
+  // src/lib/storage.ts) — hoy apunta a FileBlob, pero el resto del código
+  // no sabe ni le importa dónde vive realmente el archivo.
+  storageKey  String
+  fileName    String
+  contentType String
+  sizeBytes   Int
+  fileHash    String // sha256 del contenido, para detectar reventa duplicada de la misma entrada
 
   uploadedAt DateTime @default(now())
 
   @@index([fileHash])
+}
+
+// Backend de storage por default: el archivo vive en la base. Suficiente
+// para el tamaño de un PDF/QR de entrada; si hiciera falta más volumen,
+// esto se reemplaza por un backend de storage de objetos sin tocar
+// DeliveryFile (storageKey queda siendo un id opaco).
+model FileBlob {
+  key         String   @id
+  data        Bytes
+  contentType String
+  createdAt   DateTime @default(now())
 }
 
 enum DisputeStatus {

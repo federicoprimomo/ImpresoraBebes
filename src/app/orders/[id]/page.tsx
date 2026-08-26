@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
+import { DeliveryError, uploadDelivery } from "@/lib/delivery";
 import { AdminCaptureButton } from "@/components/admin-capture-button";
 import { AdminInvoiceButton } from "@/components/admin-invoice-button";
 
@@ -38,6 +40,7 @@ export default async function OrderDetailPage({
       buyer: { select: { name: true, email: true } },
       seller: { select: { name: true, email: true } },
       invoice: true,
+      delivery: true,
     },
   });
 
@@ -51,9 +54,44 @@ export default async function OrderDetailPage({
   }
 
   const isBuyer = order.buyerId === session.user.id;
+  const isSeller = order.sellerId === session.user.id;
   const canManuallyCapture =
     isAdmin && (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
   const canManageInvoice = isAdmin && order.status === "RELEASED";
+
+  const canUploadDelivery =
+    isSeller &&
+    !order.downloadedAt &&
+    (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
+  const canDownloadDelivery = isBuyer && Boolean(order.delivery);
+
+  async function deliver(formData: FormData) {
+    "use server";
+
+    const uploaderSession = await auth();
+    if (!uploaderSession?.user) redirect("/login");
+
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("Elegí un archivo para subir.");
+    }
+
+    try {
+      await uploadDelivery({
+        orderId: id,
+        sellerId: uploaderSession.user.id,
+        fileName: file.name,
+        contentType: file.type,
+        data: Buffer.from(await file.arrayBuffer()),
+      });
+    } catch (error) {
+      throw new Error(
+        error instanceof DeliveryError ? error.message : "No pudimos subir el archivo.",
+      );
+    }
+
+    revalidatePath(`/orders/${id}`);
+  }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
@@ -98,6 +136,67 @@ export default async function OrderDetailPage({
           ) : null}
         </dl>
       </div>
+
+      {canUploadDelivery ? (
+        <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
+          <p className="font-medium">
+            {order.delivery ? "Reemplazar la entrada subida" : "Subir la entrada"}
+          </p>
+          <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+            PDF, PNG, JPG o WEBP, hasta 8MB. Una vez que el comprador la
+            descargue, no se va a poder reemplazar.
+          </p>
+          <form action={deliver} className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="file"
+              name="file"
+              required
+              accept="application/pdf,image/png,image/jpeg,image/webp"
+              className="flex-1 text-sm"
+            />
+            <button
+              type="submit"
+              className="flex h-10 shrink-0 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+            >
+              {order.delivery ? "Reemplazar" : "Subir"}
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {isSeller && order.delivery && order.downloadedAt ? (
+        <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
+          <p className="font-medium">Entrada entregada</p>
+          <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+            {order.delivery.fileName} · el comprador ya la descargó.
+          </p>
+        </div>
+      ) : null}
+
+      {canDownloadDelivery ? (
+        <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
+          <p className="font-medium">Tu entrada</p>
+          <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+            {order.delivery!.fileName}
+            {order.downloadedAt
+              ? " — ya la descargaste."
+              : " — descargala para confirmar la recepción."}
+          </p>
+          <a
+            href={`/api/orders/${order.id}/download`}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+          >
+            Descargar entrada
+          </a>
+          {!order.downloadedAt ? (
+            <p className="mt-3 text-xs text-zinc-500">
+              Al descargarla arranca la cuenta regresiva para la liberación
+              automática del pago al vendedor, salvo que abras un reclamo
+              antes.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
         <p className="font-medium">Línea de tiempo</p>

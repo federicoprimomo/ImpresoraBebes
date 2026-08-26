@@ -19,7 +19,9 @@ automáticamente en ARCA (ex-AFIP).
 3. El vendedor sube el archivo/código de la entrada a la plataforma.
 4. El comprador la descarga. Se abre una ventana de tiempo (configurable)
    para reclamar si algo está mal.
-5. Si no hay reclamo pasado ese plazo, un worker **captura** el pago
+5. El comprador descarga la entrada desde la plataforma. Esa primera
+   descarga dispara la ventana de reclamo (`RELEASE_TIMEOUT_HOURS`). Si no
+   hay reclamo pasado ese plazo, un worker **captura** el pago
    automáticamente (se libera al vendedor, menos la comisión). Si el
    comprador abre una disputa, un admin revisa y decide liberar o
    reembolsar. Mercado Pago da un máximo de **7 días** desde la
@@ -162,6 +164,9 @@ Ver `prisma/schema.prisma`. Entidades principales:
   reembolsado / vencido.
 - **DeliveryFile**: referencia al archivo de la entrada subido por el
   vendedor, con hash del contenido para detectar reventa duplicada.
+- **FileBlob**: backend de storage por default para los archivos de
+  entrega (viven en la base) — reemplazable por storage de objetos sin
+  tocar `DeliveryFile` (ver `src/lib/storage.ts`).
 - **Dispute**: reclamo de un comprador y su resolución por un admin.
 - **CommissionLedgerEntry**: registro de comisiones cobradas, para reportes.
 - **Invoice**: factura de comisión emitida (o fallida) en ARCA, con CAE.
@@ -174,9 +179,12 @@ Ver `prisma/schema.prisma`. Entidades principales:
       checkout solo con tarjeta, reserva + captura con split
       (`application_fee`), worker de liberación automática, webhook, y
       facturación automática de la comisión en ARCA.
-- [ ] **Etapa 3** — Entrega digital de la entrada (subida/descarga + hash
-      anti-reutilización) — hoy el disparador de la liberación
-      (`releaseDueAt`) no lo setea nada todavía.
+- [x] **Etapa 3** — Entrega digital de la entrada: el vendedor sube el
+      archivo (PDF/PNG/JPG/WEBP, hasta 8MB) desde el detalle de la orden,
+      con hash sha256 que rechaza reutilizar el mismo archivo en otra
+      venta; el comprador la descarga desde ahí, y esa primera descarga
+      dispara `releaseDueAt` — con esto el worker de la etapa 2 ya tiene
+      algo que liberar solo.
 - [ ] **Etapa 4** — UI de disputas para el comprador (el modelo y la
       resolución por admin ya existen, falta la pantalla para abrirlas).
 - [ ] **Etapa 5** — Panel de admin: comisiones y reportes agregados.
