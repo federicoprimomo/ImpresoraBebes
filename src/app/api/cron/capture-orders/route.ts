@@ -12,6 +12,10 @@ import { captureOrder } from "@/lib/capture-order";
  *   1) Marca EXPIRED las órdenes que superaron el límite de 7 días que da
  *      Mercado Pago para capturar una autorización, sin intentar capturarlas
  *      (si nunca se entregó la entrada, no corresponde pagarle al vendedor).
+ *      Si la orden tenía una disputa abierta, Mercado Pago ya canceló la
+ *      autorización sola por el lado de ellos — cerramos el reclamo como
+ *      RESOLVED_REFUND para que no quede "abierto" para siempre esperando
+ *      una decisión que ya no tiene nada para ejecutar.
  *   2) Captura (libera) las órdenes entregadas cuya ventana de disputa ya
  *      venció y no tienen una disputa abierta.
  */
@@ -31,23 +35,42 @@ export async function GET(request: NextRequest) {
 
   const overdue = await prisma.order.findMany({
     where: {
-      status: { in: ["PAYMENT_HELD", "DELIVERED"] },
+      status: { in: ["PAYMENT_HELD", "DELIVERED", "DISPUTED"] },
       captureDeadlineAt: { lte: now },
     },
-    select: { id: true },
+    include: { dispute: true },
   });
 
   const expiredIds: string[] = [];
-  for (const { id } of overdue) {
-    await prisma.order.update({
-      where: { id },
-      data: {
-        status: "EXPIRED",
-        lastPaymentError:
-          "Se venció la ventana de 7 días de Mercado Pago sin capturarse.",
-      },
-    });
-    expiredIds.push(id);
+  for (const order of overdue) {
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: "EXPIRED",
+          lastPaymentError:
+            "Se venció la ventana de 7 días de Mercado Pago sin capturarse.",
+        },
+      }),
+      // Nadie cobró nada — el vendedor tiene que poder volver a intentar
+      // vender la misma entrada.
+      prisma.listing.update({
+        where: { id: order.listingId },
+        data: { status: "ACTIVE" },
+      }),
+    ]);
+    if (order.dispute && order.dispute.status === "OPEN") {
+      await prisma.dispute.update({
+        where: { orderId: order.id },
+        data: {
+          status: "RESOLVED_REFUND",
+          resolution:
+            "Cerrado automáticamente: venció el plazo de Mercado Pago sin que se resolviera el reclamo.",
+          resolvedAt: now,
+        },
+      });
+    }
+    expiredIds.push(order.id);
   }
 
   const dueForCapture = await prisma.order.findMany({

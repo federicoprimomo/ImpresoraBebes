@@ -11,7 +11,9 @@ import { issueCommissionInvoice } from "@/lib/arca/invoice";
 export class OrderNotCapturableError extends Error {}
 export class OrderExpiredError extends Error {}
 
-const CAPTURABLE_STATUSES = ["PAYMENT_HELD", "DELIVERED"] as const;
+// DISPUTED entra acá porque resolver una disputa a favor del vendedor
+// también termina en una captura — ver lib/dispute.ts.
+const CAPTURABLE_STATUSES = ["PAYMENT_HELD", "DELIVERED", "DISPUTED"] as const;
 
 /**
  * Aplica los efectos de "el pago ya se liberó": marca la orden RELEASED, la
@@ -82,14 +84,22 @@ export async function captureOrder(orderId: string) {
   }
 
   if (order.captureDeadlineAt && new Date() > order.captureDeadlineAt) {
-    await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: "EXPIRED",
-        lastPaymentError:
-          "Se venció la ventana de 7 días de Mercado Pago para capturar el pago sin resolver la entrega/disputa.",
-      },
-    });
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: "EXPIRED",
+          lastPaymentError:
+            "Se venció la ventana de 7 días de Mercado Pago para capturar el pago sin resolver la entrega/disputa.",
+        },
+      }),
+      // Nadie cobró nada — el vendedor tiene que poder volver a intentar
+      // vender la misma entrada.
+      prisma.listing.update({
+        where: { id: order.listingId },
+        data: { status: "ACTIVE" },
+      }),
+    ]);
     throw new OrderExpiredError(
       `La orden ${orderId} superó el deadline de captura de Mercado Pago.`,
     );

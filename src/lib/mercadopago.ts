@@ -182,9 +182,15 @@ export async function capturePayment(input: {
 export async function cancelPayment(input: {
   sellerAccessToken: string;
   mpPaymentId: string;
+  idempotencyKey?: string;
 }) {
   const payment = new Payment(sellerConfig(input.sellerAccessToken));
-  return payment.cancel({ id: input.mpPaymentId });
+  return payment.cancel({
+    id: input.mpPaymentId,
+    requestOptions: input.idempotencyKey
+      ? { idempotencyKey: input.idempotencyKey }
+      : undefined,
+  });
 }
 
 export async function getPayment(input: {

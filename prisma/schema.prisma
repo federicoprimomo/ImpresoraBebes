@@ -202,7 +202,7 @@ model Order {
   downloadedAt      DateTime? // cuándo el comprador descargó el archivo (dispara el timeout)
   releaseDueAt      DateTime? // downloadedAt + ventana de disputa; el worker captura pasado este momento
   releasedAt        DateTime? // cuándo se confirmó la captura (fondos ya liberados al vendedor)
-  cancelledAt       DateTime?
+  cancelledAt       DateTime? // cuándo pasó a CANCELLED o REFUNDED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

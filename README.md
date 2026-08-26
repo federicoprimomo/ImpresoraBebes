@@ -22,11 +22,16 @@ automáticamente en ARCA (ex-AFIP).
 5. El comprador descarga la entrada desde la plataforma. Esa primera
    descarga dispara la ventana de reclamo (`RELEASE_TIMEOUT_HOURS`). Si no
    hay reclamo pasado ese plazo, un worker **captura** el pago
-   automáticamente (se libera al vendedor, menos la comisión). Si el
-   comprador abre una disputa, un admin revisa y decide liberar o
-   reembolsar. Mercado Pago da un máximo de **7 días** desde la
-   autorización para capturar — pasado ese plazo sin resolverse, la orden
-   queda `EXPIRED`.
+   automáticamente (se libera al vendedor, menos la comisión).
+6. Si el comprador abre un reclamo antes de eso, la orden queda congelada
+   (`DISPUTED`) — el worker deja de tocarla. Un admin la revisa y decide:
+   libera el pago al vendedor, o cancela la autorización (el dinero nunca
+   salió de la tarjeta del comprador, así que "reembolsar" acá es cancelar
+   la reserva, no devolver algo que ya se cobró). Mercado Pago da un
+   máximo de **7 días** desde la autorización para resolver esto — pasado
+   ese plazo sin capturarse (con o sin reclamo de por medio), la orden
+   queda `EXPIRED` y la publicación se reactiva para que el vendedor pueda
+   volver a intentarlo.
 6. Al liberarse el pago, se emite automáticamente una Factura C por la
    comisión cobrada, vía el webservice de facturación electrónica de ARCA.
 
@@ -167,7 +172,9 @@ Ver `prisma/schema.prisma`. Entidades principales:
 - **FileBlob**: backend de storage por default para los archivos de
   entrega (viven en la base) — reemplazable por storage de objetos sin
   tocar `DeliveryFile` (ver `src/lib/storage.ts`).
-- **Dispute**: reclamo de un comprador y su resolución por un admin.
+- **Dispute**: reclamo de un comprador (`OPEN`) y su resolución por un
+  admin (`RESOLVED_RELEASE`/`RESOLVED_REFUND`) — o cerrado automáticamente
+  si vence el plazo de 7 días de Mercado Pago sin que nadie lo resuelva.
 - **CommissionLedgerEntry**: registro de comisiones cobradas, para reportes.
 - **Invoice**: factura de comisión emitida (o fallida) en ARCA, con CAE.
 - **ArcaAuthTicket**: token de acceso a los webservices de ARCA, cacheado.
@@ -185,8 +192,12 @@ Ver `prisma/schema.prisma`. Entidades principales:
       venta; el comprador la descarga desde ahí, y esa primera descarga
       dispara `releaseDueAt` — con esto el worker de la etapa 2 ya tiene
       algo que liberar solo.
-- [ ] **Etapa 4** — UI de disputas para el comprador (el modelo y la
-      resolución por admin ya existen, falta la pantalla para abrirlas).
+- [x] **Etapa 4** — El comprador puede abrir un reclamo desde el detalle
+      de la orden (congela la orden en `DISPUTED`, el worker deja de
+      tocarla); un admin lo resuelve liberando el pago o cancelando la
+      autorización. Si nadie lo resuelve antes de los 7 días de Mercado
+      Pago, el worker lo cierra solo como reembolso y reactiva la
+      publicación.
 - [ ] **Etapa 5** — Panel de admin: comisiones y reportes agregados.
 
 ## Nota legal

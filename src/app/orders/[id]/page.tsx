@@ -5,8 +5,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { DeliveryError, uploadDelivery } from "@/lib/delivery";
+import { DisputeError, openDispute } from "@/lib/dispute";
 import { AdminCaptureButton } from "@/components/admin-capture-button";
 import { AdminInvoiceButton } from "@/components/admin-invoice-button";
+import { AdminDisputeResolution } from "@/components/admin-dispute-resolution";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +43,7 @@ export default async function OrderDetailPage({
       seller: { select: { name: true, email: true } },
       invoice: true,
       delivery: true,
+      dispute: true,
     },
   });
 
@@ -64,6 +67,10 @@ export default async function OrderDetailPage({
     !order.downloadedAt &&
     (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
   const canDownloadDelivery = isBuyer && Boolean(order.delivery);
+  const canOpenDispute =
+    isBuyer &&
+    !order.dispute &&
+    (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
 
   async function deliver(formData: FormData) {
     "use server";
@@ -87,6 +94,28 @@ export default async function OrderDetailPage({
     } catch (error) {
       throw new Error(
         error instanceof DeliveryError ? error.message : "No pudimos subir el archivo.",
+      );
+    }
+
+    revalidatePath(`/orders/${id}`);
+  }
+
+  async function reportIssue(formData: FormData) {
+    "use server";
+
+    const buyerSession = await auth();
+    if (!buyerSession?.user) redirect("/login");
+
+    try {
+      await openDispute({
+        orderId: id,
+        buyerId: buyerSession.user.id,
+        reason: String(formData.get("reason") ?? ""),
+        evidence: String(formData.get("evidence") ?? ""),
+      });
+    } catch (error) {
+      throw new Error(
+        error instanceof DisputeError ? error.message : "No pudimos abrir el reclamo.",
       );
     }
 
@@ -195,6 +224,70 @@ export default async function OrderDetailPage({
               antes.
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {order.dispute ? (
+        <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm dark:border-amber-900 dark:bg-amber-950">
+          <p className="font-medium text-amber-900 dark:text-amber-200">
+            Reclamo{" "}
+            {order.dispute.status === "OPEN"
+              ? "abierto"
+              : order.dispute.status === "RESOLVED_RELEASE"
+                ? "resuelto: se liberó el pago al vendedor"
+                : "resuelto: se canceló el pago y vuelve al comprador"}
+          </p>
+          <p className="mt-2 text-amber-900 dark:text-amber-200">
+            <span className="font-medium">Motivo:</span> {order.dispute.reason}
+          </p>
+          {order.dispute.evidence ? (
+            <p className="mt-1 text-amber-900 dark:text-amber-200">
+              <span className="font-medium">Evidencia:</span> {order.dispute.evidence}
+            </p>
+          ) : null}
+          {order.dispute.resolution ? (
+            <p className="mt-1 text-amber-900 dark:text-amber-200">
+              <span className="font-medium">Nota de resolución:</span>{" "}
+              {order.dispute.resolution}
+            </p>
+          ) : null}
+
+          {isAdmin && order.dispute.status === "OPEN" ? (
+            <div className="mt-4">
+              <AdminDisputeResolution orderId={order.id} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canOpenDispute ? (
+        <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
+          <p className="font-medium">¿Algo no está bien?</p>
+          <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+            Si la entrada no llegó, es inválida, o algo no cierra, contanos
+            antes de que se libere el pago solo. Un admin lo va a revisar.
+          </p>
+          <form action={reportIssue} className="mt-3 flex flex-col gap-3">
+            <textarea
+              name="reason"
+              required
+              rows={2}
+              placeholder="¿Qué pasó?"
+              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            />
+            <textarea
+              name="evidence"
+              rows={2}
+              placeholder="Evidencia (opcional): links, referencias, lo que ayude"
+              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            />
+            <button
+              type="submit"
+              className="flex h-10 items-center justify-center rounded-full border border-red-300 px-5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+            >
+              Abrir reclamo
+            </button>
+          </form>
         </div>
       ) : null}
 
