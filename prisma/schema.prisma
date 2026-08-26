@@ -67,8 +67,11 @@ model User {
   image         String?
   role          UserRole  @default(USER)
 
-  // Datos de cobro del vendedor (para liberar el pago vía Mercado Pago).
-  mercadoPagoUserId String?
+  // Identificación fiscal (CUIT/DNI), opcional — se usa como receptor de la
+  // factura de comisión (ver Invoice). Sin esto, se factura a "Consumidor
+  // Final", válido para Factura C por debajo de cierto monto.
+  taxIdType   String? // "CUIT" | "DNI"
+  taxIdNumber String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,10 +79,45 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  listings       Listing[]      @relation("SellerListings")
-  ordersAsBuyer  Order[]        @relation("BuyerOrders")
-  ordersAsSeller Order[]        @relation("SellerOrders")
-  resolvedDisputes Dispute[]    @relation("ResolvedByAdmin")
+  // Cuenta de Mercado Pago del vendedor, conectada vía OAuth (modelo
+  // Marketplace). Sin esto no se le puede pagar por split.
+  connectedAccount ConnectedAccount?
+
+  listings         Listing[] @relation("SellerListings")
+  ordersAsBuyer    Order[]   @relation("BuyerOrders")
+  ordersAsSeller   Order[]   @relation("SellerOrders")
+  resolvedDisputes Dispute[] @relation("ResolvedByAdmin")
+}
+
+enum ConnectedAccountStatus {
+  CONNECTED
+  DISCONNECTED // el usuario revocó el acceso o lo desconectamos nosotros
+  ERROR // el refresh del token falló y hace falta reconectar
+}
+
+// Vínculo OAuth con la cuenta de Mercado Pago de un vendedor ("tercero" en
+// el modelo Marketplace). Se crea/actualiza en el callback de OAuth.
+model ConnectedAccount {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  mpUserId Int? // user_id de Mercado Pago del vendedor, para logs/soporte
+
+  // Tokens encriptados (ver src/lib/mp-crypto.ts) — nunca se guardan en claro.
+  accessTokenEnc       String    @db.Text
+  refreshTokenEnc      String    @db.Text
+  accessTokenExpiresAt DateTime? // para saber cuándo conviene renovar antes de usarlo
+
+  publicKey String?
+  scope     String?
+  liveMode  Boolean @default(false)
+
+  status ConnectedAccountStatus @default(CONNECTED)
+
+  connectedAt    DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  disconnectedAt DateTime?
 }
 
 enum ListingStatus {
@@ -107,25 +145,29 @@ model Listing {
   orders Order[]
 }
 
-// Ciclo de vida completo de una compra con retención de pago (escrow).
+// Ciclo de vida completo de una compra con retención de pago (escrow),
+// implementado como autorización de tarjeta (capture=false) + captura
+// posterior vía Mercado Pago (modelo Marketplace, split con application_fee).
 enum OrderStatus {
-  PENDING_PAYMENT // orden creada, esperando confirmación de pago de Mercado Pago
-  PAYMENT_HELD // pago acreditado y retenido, esperando que el vendedor entregue
+  PENDING_PAYMENT // orden creada, autorización en curso contra Mercado Pago
+  PAYMENT_FAILED // la autorización fue rechazada (tarjeta declinada, etc.)
+  PAYMENT_HELD // pago autorizado y retenido ("reservado"), esperando entrega
   DELIVERED // el vendedor subió el archivo de la entrada
-  RELEASED // pago liberado al vendedor (por confirmación, timeout, o resolución de disputa)
+  RELEASED // pago capturado: se liberó al vendedor (menos comisión)
   DISPUTED // el comprador abrió una disputa antes del timeout
-  REFUNDED // se reembolsó al comprador (por disputa resuelta a su favor)
+  REFUNDED // se anuló/reembolsó el pago (disputa resuelta a favor del comprador)
+  EXPIRED // pasaron los 7 días de autorización de MP sin capturarse
   CANCELLED // la orden se canceló antes de llegar a PAYMENT_HELD
 }
 
 model Order {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   listingId String
   listing   Listing @relation(fields: [listingId], references: [id])
 
-  buyerId  String
-  buyer    User   @relation("BuyerOrders", fields: [buyerId], references: [id])
+  buyerId String
+  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id])
 
   sellerId String
   seller   User   @relation("SellerOrders", fields: [sellerId], references: [id])
@@ -133,28 +175,46 @@ model Order {
   status OrderStatus @default(PENDING_PAYMENT)
 
   // Montos en centavos de ARS.
-  amountArs       Int
-  buyerFeeArs     Int @default(0) // comisión que paga el comprador (sumada al precio)
-  sellerFeeArs    Int @default(0) // comisión que se descuenta al vendedor al liberar
-  sellerPayoutArs Int? // monto final liquidado al vendedor (amount - sellerFee)
+  amountArs       Int // total cobrado al comprador (precio + comisión del comprador)
+  buyerFeeArs     Int  @default(0) // comisión que paga el comprador (sumada al precio)
+  sellerFeeArs    Int  @default(0) // comisión que se descuenta al vendedor al liberar
+  sellerPayoutArs Int? // monto final liquidado al vendedor (amount - buyerFee - sellerFee)
 
-  // Integración con Mercado Pago.
-  mpPreferenceId String?
-  mpPaymentId    String?
+  // Datos del comprador enviados a Mercado Pago (snapshot al momento de pagar).
+  payerEmail     String
+  payerDocType   String? // ej. "DNI"
+  payerDocNumber String?
 
-  paidAt      DateTime? // cuándo se confirmó el pago (webhook de MP)
-  deliveredAt DateTime? // cuándo el vendedor subió el archivo
-  downloadedAt DateTime? // cuándo el comprador descargó el archivo (dispara el timeout)
-  releaseDueAt DateTime? // downloadedAt + ventana de disputa; el cron libera el pago pasado este momento
-  releasedAt  DateTime?
-  cancelledAt DateTime?
+  // Integración con Mercado Pago (Checkout API, modelo Marketplace).
+  mpPaymentId String? // id del pago creado con capture=false
+
+  // Claves de idempotencia — se generan una vez y se reutilizan en reintentos
+  // de la misma operación para no duplicar cobros/capturas ante fallas de red.
+  idempotencyKeyCreate  String  @unique
+  idempotencyKeyCapture String? @unique
+
+  captureAttempts  Int     @default(0)
+  lastPaymentError String? @db.Text // motivo del último rechazo/fallo (autorización o captura)
+
+  authorizedAt      DateTime? // cuándo Mercado Pago autorizó y retuvo el pago
+  captureDeadlineAt DateTime? // authorizedAt + 7 días — límite duro de MP para capturar
+  deliveredAt       DateTime? // cuándo el vendedor subió el archivo
+  downloadedAt      DateTime? // cuándo el comprador descargó el archivo (dispara el timeout)
+  releaseDueAt      DateTime? // downloadedAt + ventana de disputa; el worker captura pasado este momento
+  releasedAt        DateTime? // cuándo se confirmó la captura (fondos ya liberados al vendedor)
+  cancelledAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  delivery DeliveryFile?
-  dispute  Dispute?
+  delivery        DeliveryFile?
+  dispute         Dispute?
   commissionEntry CommissionLedgerEntry?
+  invoice         Invoice?
+
+  @@index([status, releaseDueAt])
+  @@index([status, captureDeadlineAt])
+  @@index([mpPaymentId])
 }
 
 model DeliveryFile {
@@ -207,4 +267,58 @@ model CommissionLedgerEntry {
   totalFeeArs  Int
 
   createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Facturación electrónica (ARCA / ex-AFIP) de la comisión de la plataforma.
+// ---------------------------------------------------------------------------
+
+// Token de acceso a los webservices de ARCA (WSAA), cacheado porque tiene
+// vigencia de ~12hs y no conviene pedir uno nuevo en cada factura.
+model ArcaAuthTicket {
+  id      String @id @default(cuid())
+  service String @unique // ej. "wsfe"
+
+  token String @db.Text
+  sign  String @db.Text
+
+  expirationTime DateTime
+  createdAt      DateTime @default(now())
+}
+
+enum InvoiceStatus {
+  PENDING // se está por emitir (o falló y está pendiente de reintento)
+  ISSUED // ARCA aprobó y devolvió CAE
+  FAILED // ARCA rechazó, o falló la comunicación
+}
+
+// Factura C (por ahora) que la plataforma emite sobre la comisión cobrada
+// en una orden. El receptor es el vendedor (a quien se le cobra la
+// comisión), salvo que no tenga CUIT/DNI cargado, en cuyo caso se emite a
+// "Consumidor Final".
+model Invoice {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  status InvoiceStatus @default(PENDING)
+
+  tipoComprobante Int // 11 = Factura C
+  puntoVenta      Int
+  numero          Int? // asignado por ARCA al emitirse
+
+  receptorDocTipo Int // 80 = CUIT, 96 = DNI, 99 = Consumidor Final
+  receptorDocNro  String
+
+  importeTotalArs Int // en centavos — importe de la comisión facturada
+
+  cae            String?
+  caeVencimiento DateTime?
+
+  errorMessage String? @db.Text
+  rawResponse  String? @db.Text // último response de ARCA, para debug/auditoría
+
+  issuedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

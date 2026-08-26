@@ -25,6 +25,9 @@ export async function SiteHeader() {
               <Link href="/orders" className="hover:underline">
                 Mis compras/ventas
               </Link>
+              <Link href="/account/mercadopago" className="hover:underline">
+                Cobrar con MP
+              </Link>
               {session.user.role === "ADMIN" ? (
                 <Link href="/admin" className="hover:underline">
                   Admin

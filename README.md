@@ -1,24 +1,32 @@
 # Entrada Segura
 
 Marketplace de reventa de entradas digitales con **pago retenido (escrow)**:
-el comprador paga, el dinero queda retenido, y solo se libera al vendedor
-cuando la entrada fue entregada y confirmada (o pasó el plazo de disputa sin
-reclamos). Resuelve el problema de confianza mutua típico de la reventa
-peer-to-peer.
+el comprador paga con tarjeta, el dinero queda **autorizado y retenido** en
+Mercado Pago (modelo Marketplace, con split automático), y solo se **captura
+(libera)** al vendedor cuando la entrada fue entregada y confirmada — o pasó
+el plazo de disputa sin reclamos. Resuelve el problema de confianza mutua
+típico de la reventa peer-to-peer. La comisión de la plataforma se factura
+automáticamente en ARCA (ex-AFIP).
 
 ## Cómo funciona
 
-1. El vendedor publica una entrada digital (PDF/QR/código).
-2. El comprador paga con Mercado Pago. El dinero queda **retenido**, no se
-   le acredita al vendedor todavía.
+1. El vendedor conecta su propia cuenta de Mercado Pago (OAuth) y publica
+   una entrada digital (PDF/QR/código).
+2. El comprador paga **solo con tarjeta**. El pago se crea con
+   `capture=false` (autorización/reserva) contra la cuenta del vendedor,
+   con `application_fee` para la comisión de la plataforma — el dinero
+   nunca pasa por una cuenta propia de la plataforma.
 3. El vendedor sube el archivo/código de la entrada a la plataforma.
 4. El comprador la descarga. Se abre una ventana de tiempo (configurable)
    para reclamar si algo está mal.
-5. Si no hay reclamo pasado ese plazo, el pago se libera automáticamente al
-   vendedor (menos la comisión). Si el comprador abre una disputa, un admin
-   revisa la evidencia y decide liberar el pago o reembolsar.
-
-La comisión de la plataforma se divide entre comprador y vendedor.
+5. Si no hay reclamo pasado ese plazo, un worker **captura** el pago
+   automáticamente (se libera al vendedor, menos la comisión). Si el
+   comprador abre una disputa, un admin revisa y decide liberar o
+   reembolsar. Mercado Pago da un máximo de **7 días** desde la
+   autorización para capturar — pasado ese plazo sin resolverse, la orden
+   queda `EXPIRED`.
+6. Al liberarse el pago, se emite automáticamente una Factura C por la
+   comisión cobrada, vía el webservice de facturación electrónica de ARCA.
 
 ## Stack
 
@@ -26,7 +34,10 @@ La comisión de la plataforma se divide entre comprador y vendedor.
 - **PostgreSQL** + **Prisma** como ORM
 - **Auth.js (NextAuth v5)** con Google como proveedor de login, sesiones
   persistidas en base vía `@auth/prisma-adapter`
-- **Mercado Pago** (Checkout Pro) para el cobro con retención de pago
+- **Mercado Pago** (Checkout API, modelo Marketplace) — SDK oficial
+  `mercadopago` (OAuth, `Payment.create`/`capture`, `WebhookSignatureValidator`)
+- **ARCA (ex-AFIP)** — WSAA + WSFEv1 para facturación electrónica de la
+  comisión, con firma CMS/PKCS#7 vía `node-forge`
 
 ## Setup local
 
@@ -48,16 +59,22 @@ createdb entrada_segura
 cp .env.example .env
 ```
 
-Completá:
+Completá (ver comentarios en `.env.example` para el detalle de cada una):
 
-- `DATABASE_URL`: cadena de conexión a tu Postgres.
-- `AUTH_SECRET`: generalo con `openssl rand -base64 32`.
-- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`: credenciales OAuth de Google
-  ([console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)).
-  Callback URL a autorizar: `http://localhost:3000/api/auth/callback/google`.
-- `MERCADOPAGO_*`: credenciales de **prueba** desde el panel de
-  [Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel).
-  No son necesarias todavía — se usan a partir de la etapa 2 (checkout).
+- `DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` — igual que antes.
+- **Mercado Pago**: `MERCADOPAGO_CLIENT_ID`/`MERCADOPAGO_CLIENT_SECRET` (credenciales
+  de tu aplicación, para el intercambio OAuth con cada vendedor),
+  `MERCADOPAGO_ACCESS_TOKEN` (tu propia cuenta), `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`
+  (para tokenizar tarjetas en el checkout), `MERCADOPAGO_WEBHOOK_SECRET`.
+  Todo desde el [panel de Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel),
+  con credenciales de **prueba** hasta certificar el pasaje a producción.
+  El `redirect_uri` de OAuth (`NEXT_PUBLIC_APP_URL` + `/api/connected-accounts/oauth/callback`)
+  tiene que estar dado de alta en el panel de tu aplicación.
+- `MP_TOKEN_ENCRYPTION_KEY`: clave para encriptar los tokens OAuth de cada
+  vendedor antes de guardarlos (`openssl rand -base64 32`).
+- `CRON_SECRET`: para autorizar al worker de capturas (ver más abajo).
+- **ARCA** (opcional — ver sección dedicada más abajo): `ARCA_ENABLED`,
+  `ARCA_CUIT`, `ARCA_CERT_BASE64`/`ARCA_KEY_BASE64`, etc.
 
 ### 3. Instalar y migrar
 
@@ -78,6 +95,48 @@ después:
 SEED_ADMIN_EMAIL="tu-email@gmail.com" npm run db:seed
 ```
 
+### 5. Worker de liberación automática
+
+`GET /api/cron/capture-orders` (con header `Authorization: Bearer $CRON_SECRET`)
+marca vencidas las órdenes que superaron los 7 días de Mercado Pago sin
+capturarse, y captura las que ya están entregadas y pasaron su ventana de
+disputa. Se ejecuta como cron cada 15-30 minutos (ej. Vercel Cron, o
+cualquier scheduler que le pegue a ese endpoint).
+
+## Facturación electrónica (ARCA / ex-AFIP)
+
+La comisión que cobra la plataforma (`buyerFeeArs + sellerFeeArs` de cada
+orden) se puede facturar automáticamente como **Factura C** al liberarse el
+pago, contra el webservice WSFEv1 de ARCA. Es automático por default y
+configurable:
+
+- `ARCA_ENABLED="true"` prende la integración (si falta cualquier otro dato
+  necesario, queda desactivada sin romper el resto del flujo).
+- `ARCA_AUTO_INVOICE_ON_RELEASE` (`true` por default) — si es `false`, la
+  factura no se emite sola; un admin la dispara manualmente desde el
+  detalle de la orden (`POST /api/orders/:id/invoice`).
+- Certificado y clave privada de la facturación electrónica, en base64
+  completo (`ARCA_CERT_BASE64` / `ARCA_KEY_BASE64` — ej. `base64 -w0 cert.crt`).
+  Se gestionan desde el propio portal de ARCA con clave fiscal — no es algo
+  que se pueda generar por código.
+- `ARCA_ENVIRONMENT="testing"` usa el ambiente de homologación hasta
+  certificar el pasaje a producción.
+- El receptor de la factura es el **vendedor** (a quien se le descuenta la
+  comisión). Si no cargó CUIT/DNI (`User.taxIdType`/`taxIdNumber`), se
+  factura a "Consumidor Final".
+
+**Simplificaciones conocidas, a resolver antes de un volumen serio:**
+- No se consulta el padrón de ARCA (`ws_sr_padron_a13`) para saber la
+  condición de IVA real del vendedor — se asume un default configurable
+  (`ARCA_DEFAULT_CONDICION_IVA_RECEPTOR_CUIT`, Responsable Monotributo por
+  default).
+- La numeración de comprobante se resuelve pidiéndole a ARCA el último
+  autorizado + 1 en cada emisión — con alta concurrencia hace falta un
+  contador serializado propio en vez de confiar en esa consulta.
+- No se genera el PDF del comprobante (con el QR que exige ARCA) — el CAE,
+  número y vencimiento quedan guardados y visibles en el detalle de la
+  orden, pero falta el layout imprimible.
+
 ## Scripts
 
 | Script              | Qué hace                                   |
@@ -93,30 +152,39 @@ SEED_ADMIN_EMAIL="tu-email@gmail.com" npm run db:seed
 
 Ver `prisma/schema.prisma`. Entidades principales:
 
-- **User**: comprador/vendedor (mismo rol) o admin.
+- **User**: comprador/vendedor (mismo rol) o admin; opcionalmente con
+  CUIT/DNI para la facturación de comisión.
+- **ConnectedAccount**: vínculo OAuth con la cuenta de Mercado Pago de un
+  vendedor (tokens encriptados).
 - **Listing**: una entrada publicada en venta.
 - **Order**: el ciclo de vida completo de una compra — pago pendiente →
-  retenido → entregado → liberado / en disputa / reembolsado.
+  autorizado/retenido → entregado → liberado (capturado) / en disputa /
+  reembolsado / vencido.
 - **DeliveryFile**: referencia al archivo de la entrada subido por el
   vendedor, con hash del contenido para detectar reventa duplicada.
 - **Dispute**: reclamo de un comprador y su resolución por un admin.
 - **CommissionLedgerEntry**: registro de comisiones cobradas, para reportes.
+- **Invoice**: factura de comisión emitida (o fallida) en ARCA, con CAE.
+- **ArcaAuthTicket**: token de acceso a los webservices de ARCA, cacheado.
 
 ## Roadmap
 
 - [x] **Etapa 1** — Scaffold, modelo de datos, login con Google.
-- [ ] **Etapa 2** — Publicación de entradas y checkout con Mercado Pago
-      (retención de pago).
+- [x] **Etapa 2** — Modelo Marketplace de Mercado Pago: OAuth de vendedores,
+      checkout solo con tarjeta, reserva + captura con split
+      (`application_fee`), worker de liberación automática, webhook, y
+      facturación automática de la comisión en ARCA.
 - [ ] **Etapa 3** — Entrega digital de la entrada (subida/descarga + hash
-      anti-reutilización).
-- [ ] **Etapa 4** — Liberación automática por timeout + sistema de
-      disputas.
-- [ ] **Etapa 5** — Panel de admin: comisiones y reportes.
+      anti-reutilización) — hoy el disparador de la liberación
+      (`releaseDueAt`) no lo setea nada todavía.
+- [ ] **Etapa 4** — UI de disputas para el comprador (el modelo y la
+      resolución por admin ya existen, falta la pantalla para abrirlas).
+- [ ] **Etapa 5** — Panel de admin: comisiones y reportes agregados.
 
 ## Nota legal
 
-El dinero de las compras pasa por Mercado Pago (retención de pago vía su
-API), no por una cuenta bancaria propia de la plataforma. Esto evita que el
-proyecto quede alcanzado por las regulaciones de custodia de fondos de
-terceros que aplicarían si el dinero pasara literalmente por una cuenta del
-proyecto antes de llegar al vendedor.
+El dinero de las compras pasa por Mercado Pago (autorización + captura vía
+su API, modelo Marketplace), no por una cuenta bancaria propia de la
+plataforma. Esto evita que el proyecto quede alcanzado por las regulaciones
+de custodia de fondos de terceros que aplicarían si el dinero pasara
+literalmente por una cuenta del proyecto antes de llegar al vendedor.
