@@ -98,6 +98,14 @@ export default async function ListingsPage({
   ]);
 
   const selectedGenre = genres.find((g) => g.id === genreId);
+  // Si el subgenreId de la URL no pertenece al género seleccionado (típico
+  // al cambiar de género con un subgénero ya elegido, o un link viejo tras
+  // reordenar categorías), se ignora — así el filtro real y lo que
+  // muestra el <select> (que de todos modos cae a "Todos" si no matchea
+  // ninguna opción) quedan siempre consistentes.
+  const effectiveSubgenreId = selectedGenre?.subgenres.some((s) => s.id === subgenreId)
+    ? subgenreId
+    : "";
   const localidadOptions = usedLocalidades.filter(
     (row) => !provincia || row.provincia === provincia,
   );
@@ -112,7 +120,7 @@ export default async function ListingsPage({
   if (provincia) where.provincia = provincia as Provincia;
   if (localidad) where.localidad = localidad;
   if (genreId) where.genreId = genreId;
-  if (subgenreId) where.subgenreId = subgenreId;
+  if (effectiveSubgenreId) where.subgenreId = effectiveSubgenreId;
   const range = fechaRange(fecha);
   if (range) where.eventDate = range;
 
@@ -134,7 +142,7 @@ export default async function ListingsPage({
     },
   });
 
-  const hasFilters = Boolean(q || provincia || localidad || genreId || subgenreId || fecha);
+  const hasFilters = Boolean(q || provincia || localidad || genreId || effectiveSubgenreId || fecha);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16">
@@ -212,7 +220,7 @@ export default async function ListingsPage({
             Subgénero
             <AutoSubmitSelect
               name="subgenreId"
-              defaultValue={subgenreId}
+              defaultValue={effectiveSubgenreId}
               disabled={!selectedGenre || selectedGenre.subgenres.length === 0}
               className={`${inputClass} disabled:opacity-50`}
             >

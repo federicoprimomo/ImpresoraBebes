@@ -32,6 +32,19 @@ describe("extractSettlementInfo", () => {
     expect(info.netReceivedArs).toBeNull();
   });
 
+  it("suma todos los ítems mercadopago_fee, no solo el primero (ej. pagos en cuotas)", () => {
+    const info = extractSettlementInfo(
+      fakePayment({
+        fee_details: [
+          { type: "mercadopago_fee", amount: 50 },
+          { type: "mercadopago_fee", amount: 28.5 },
+        ],
+      }),
+    );
+
+    expect(info.mpFeeArs).toBe(7850);
+  });
+
   it("ignora otros tipos de fee_details (financing_fee, coupon_fee, etc.)", () => {
     const info = extractSettlementInfo(
       fakePayment({

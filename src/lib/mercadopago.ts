@@ -218,13 +218,21 @@ export type SettlementInfo = {
  * sabemos", nunca como si el costo fuera cero.
  */
 export function extractSettlementInfo(payment: PaymentResponse): SettlementInfo {
-  const mpFeeAmount = payment.fee_details?.find(
-    (fee) => fee.type === "mercadopago_fee",
-  )?.amount;
+  // .filter + suma en vez de .find: en pagos en cuotas Mercado Pago puede
+  // devolver más de un ítem "mercadopago_fee" en fee_details — quedarse
+  // con el primero subestimaría el costo real.
+  const mpFeeAmounts = (payment.fee_details ?? [])
+    .filter((fee) => fee.type === "mercadopago_fee")
+    .map((fee) => fee.amount)
+    .filter((amount): amount is number => typeof amount === "number");
+
   const netReceivedAmount = payment.transaction_details?.net_received_amount;
 
   return {
-    mpFeeArs: typeof mpFeeAmount === "number" ? Math.round(mpFeeAmount * 100) : null,
+    mpFeeArs:
+      mpFeeAmounts.length > 0
+        ? Math.round(mpFeeAmounts.reduce((sum, amount) => sum + amount, 0) * 100)
+        : null,
     netReceivedArs:
       typeof netReceivedAmount === "number" ? Math.round(netReceivedAmount * 100) : null,
   };

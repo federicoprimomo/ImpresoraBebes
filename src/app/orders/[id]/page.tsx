@@ -157,7 +157,7 @@ export default async function OrderDetailPage({
             </dt>
             <dd>{formatArsCents(order.buyerFeeArs + order.sellerFeeArs)}</dd>
           </div>
-          {order.status === "RELEASED" && order.mpFeeArs !== null ? (
+          {order.mpFeeArs !== null ? (
             <div className="flex justify-between">
               <dt className="text-zinc-600 dark:text-zinc-400">
                 Costo de Mercado Pago
@@ -169,7 +169,7 @@ export default async function OrderDetailPage({
             <div className="flex justify-between font-semibold">
               <dt>
                 Recibe el vendedor
-                {order.status !== "RELEASED" ? (
+                {order.mpFeeArs === null ? (
                   <span className="ml-1 font-normal text-zinc-500">(estimado)</span>
                 ) : null}
               </dt>
@@ -177,7 +177,7 @@ export default async function OrderDetailPage({
             </div>
           ) : null}
         </dl>
-        {order.status !== "RELEASED" ? (
+        {order.mpFeeArs === null ? (
           <p className="mt-3 text-xs text-zinc-500">
             El monto estimado todavía no descuenta el costo propio de Mercado
             Pago por procesar el cobro (variable, aparte de nuestra comisión).
