@@ -105,14 +105,30 @@ export async function captureOrder(orderId: string) {
     );
   }
 
-  const idempotencyKeyCapture =
-    order.idempotencyKeyCapture ??
-    (
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { idempotencyKeyCapture: randomUUID() },
-      })
-    ).idempotencyKeyCapture!;
+  // Asignación atómica: si dos llamados a captureOrder corren en paralelo
+  // para la misma orden (ej. el cron y un admin clickeando al mismo tiempo),
+  // un simple "leer, y si no hay generar" no alcanza — ambos leerían null
+  // y cada uno terminaría con una clave distinta, exactamente el doble
+  // llamado a Mercado Pago que esto existe para evitar. El `updateMany`
+  // condicionado a `idempotencyKeyCapture: null` hace que solo uno de los
+  // dos gane la escritura.
+  let idempotencyKeyCapture = order.idempotencyKeyCapture;
+  if (!idempotencyKeyCapture) {
+    const candidateKey = randomUUID();
+    const { count } = await prisma.order.updateMany({
+      where: { id: orderId, idempotencyKeyCapture: null },
+      data: { idempotencyKeyCapture: candidateKey },
+    });
+    idempotencyKeyCapture =
+      count === 1
+        ? candidateKey
+        : (
+            await prisma.order.findUniqueOrThrow({
+              where: { id: orderId },
+              select: { idempotencyKeyCapture: true },
+            })
+          ).idempotencyKeyCapture!;
+  }
 
   await prisma.order.update({
     where: { id: orderId },

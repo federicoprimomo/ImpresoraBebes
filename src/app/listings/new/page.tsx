@@ -15,10 +15,8 @@ async function createListing(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const eventDateRaw = String(formData.get("eventDate") ?? "").trim();
   const priceRaw = String(formData.get("price") ?? "").trim();
-  const quantityRaw = String(formData.get("quantity") ?? "1").trim();
 
   const priceArs = Math.round(Number(priceRaw.replace(",", ".")) * 100);
-  const quantity = Math.max(1, Math.trunc(Number(quantityRaw)) || 1);
 
   if (!title || !Number.isFinite(priceArs) || priceArs <= 0) {
     throw new Error("Completá al menos el título y un precio válido.");
@@ -30,7 +28,12 @@ async function createListing(formData: FormData) {
       description: description || null,
       eventDate: eventDateRaw ? new Date(eventDateRaw) : null,
       priceArs,
-      quantity,
+      // El modelo de datos tiene un campo `quantity`, pero todavía no hay
+      // lógica de stock (decremento atómico, disponibilidad parcial, etc.)
+      // — se vende de a una entrada por publicación hasta que eso se
+      // construya. Ofrecer "cantidad" en el form prometía algo que no se
+      // cumplía: la primera venta agotaba la publicación entera sin avisar.
+      quantity: 1,
       sellerId: session.user.id,
     },
   });
@@ -105,16 +108,10 @@ export default async function NewListingPage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Cantidad de entradas
-          <input
-            type="number"
-            name="quantity"
-            defaultValue={1}
-            min={1}
-            className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
-          />
-        </label>
+        <p className="text-xs text-zinc-500">
+          Por ahora cada publicación es para una sola entrada. Si tenés más
+          de una para vender, publicalas por separado.
+        </p>
 
         <button
           type="submit"

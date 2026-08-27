@@ -12,7 +12,7 @@ export default function TerminosPage() {
         abogado antes de publicarse como términos vinculantes.
       </p>
 
-      <div className="prose prose-zinc mt-8 flex flex-col gap-6 text-sm text-zinc-700 dark:text-zinc-300">
+      <div className="mt-8 flex flex-col gap-6 text-sm text-zinc-700 dark:text-zinc-300">
         <section>
           <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
             1. Qué es Escrow.ar

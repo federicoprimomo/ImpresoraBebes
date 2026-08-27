@@ -1,6 +1,6 @@
 import type { ArcaConfig } from "@/lib/arca/config";
 import type { AuthTicket } from "@/lib/arca/wsaa";
-import { assertNoSoapFault, extractAllTags, extractTag } from "@/lib/arca/xml";
+import { assertNoSoapFault, escapeXml, extractAllTags, extractTag } from "@/lib/arca/xml";
 
 const SOAP_NS = "http://ar.gov.afip.dif.FEV1/";
 
@@ -54,7 +54,7 @@ function authXml(config: ArcaConfig, auth: AuthTicket): string {
     "<ar:Auth>",
     `<ar:Token>${auth.token}</ar:Token>`,
     `<ar:Sign>${auth.sign}</ar:Sign>`,
-    `<ar:Cuit>${config.cuit}</ar:Cuit>`,
+    `<ar:Cuit>${escapeXml(config.cuit)}</ar:Cuit>`,
     "</ar:Auth>",
   ].join("");
 }
@@ -108,7 +108,7 @@ export async function requestCae(
     "<ar:FECAEDetRequest>",
     "<ar:Concepto>2</ar:Concepto>", // 2 = Servicios (la comisión es un servicio de intermediación)
     `<ar:DocTipo>${input.receptorDocTipo}</ar:DocTipo>`,
-    `<ar:DocNro>${input.receptorDocNro}</ar:DocNro>`,
+    `<ar:DocNro>${escapeXml(input.receptorDocNro)}</ar:DocNro>`,
     `<ar:CbteDesde>${input.numero}</ar:CbteDesde>`,
     `<ar:CbteHasta>${input.numero}</ar:CbteHasta>`,
     `<ar:CbteFch>${fecha}</ar:CbteFch>`,

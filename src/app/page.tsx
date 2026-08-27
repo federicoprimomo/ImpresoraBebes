@@ -139,8 +139,29 @@ const faqs = [
   },
 ];
 
+// Si PLATFORM_FEE_BUYER_PCT/SELLER_PCT están mal configuradas,
+// calculateOrderFees() tira una excepción — antes eso solo rompía el
+// checkout, pero acá se ejecuta en la landing pública. Un typo de config
+// no puede tirar abajo la home entera, así que degradamos a un ejemplo
+// fijo en vez de dejar que reviente el render de "/".
+function getFeeExample() {
+  try {
+    return calculateOrderFees(1500000); // ejemplo: entrada de $15.000
+  } catch (error) {
+    console.error("Config de comisión inválida, usando ejemplo de respaldo", error);
+    return {
+      priceArs: 1500000,
+      buyerFeeArs: 60000,
+      sellerFeeArs: 60000,
+      amountArs: 1560000,
+      sellerPayoutArs: 1440000,
+      applicationFeeArs: 120000,
+    };
+  }
+}
+
 export default function Home() {
-  const example = calculateOrderFees(1500000); // ejemplo: entrada de $15.000
+  const example = getFeeExample();
 
   return (
     <main className="flex flex-1 flex-col">
@@ -504,18 +525,18 @@ export default function Home() {
 
       {/* CTA final */}
       <section className="px-6 py-20">
-        <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 px-8 py-16 text-center shadow-xl">
+        <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-hover px-8 py-16 text-center shadow-xl">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">
             ¿Listo para operar sin desconfianza?
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-indigo-100">
+          <p className="mx-auto mt-3 max-w-md text-white/80">
             Publicá tu entrada o buscá una para comprar — el pago queda
             protegido de punta a punta.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/listings"
-              className="flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-medium text-indigo-700 shadow-md transition-colors hover:bg-indigo-50"
+              className="flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-medium text-brand shadow-md transition-colors hover:bg-brand-muted"
             >
               Ver entradas en venta
             </Link>

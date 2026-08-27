@@ -80,6 +80,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Reservar la publicación ANTES de llamar a Mercado Pago, de forma
+  // atómica: si dos compradores mandan la compra casi al mismo tiempo,
+  // el chequeo de arriba (`listing.status !== "ACTIVE"`) lo pueden pasar
+  // los dos, porque ninguno todavía escribió nada. Este `updateMany`
+  // condicionado a que siga ACTIVE hace que solo uno de los dos gane —
+  // el resto no puede terminar autorizando un pago sobre una entrada que
+  // ya se le prometió a otro comprador.
+  const reservation = await prisma.listing.updateMany({
+    where: { id: listing.id, status: "ACTIVE" },
+    data: { status: "RESERVED" },
+  });
+  if (reservation.count === 0) {
+    return NextResponse.json(
+      { error: "Esta entrada ya no está disponible." },
+      { status: 409 },
+    );
+  }
+
   const fees = calculateOrderFees(listing.priceArs);
 
   const order = await prisma.order.create({
@@ -128,35 +146,37 @@ export async function POST(request: NextRequest) {
         now.getTime() + CAPTURE_DEADLINE_DAYS * 24 * 60 * 60 * 1000,
       );
 
-      await prisma.$transaction([
-        prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: "PAYMENT_HELD",
-            mpPaymentId: String(payment.id),
-            authorizedAt: now,
-            captureDeadlineAt,
-          },
-        }),
-        prisma.listing.update({
-          where: { id: listing.id },
-          data: { status: "RESERVED" },
-        }),
-      ]);
+      // La publicación ya quedó RESERVED en el updateMany atómico de arriba.
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: "PAYMENT_HELD",
+          mpPaymentId: String(payment.id),
+          authorizedAt: now,
+          captureDeadlineAt,
+        },
+      });
 
       return NextResponse.json({ orderId: order.id, status: "PAYMENT_HELD" });
     }
 
-    // Rechazado, cancelado, o cualquier otro estado no exitoso.
+    // Rechazado, cancelado, o cualquier otro estado no exitoso: nadie se
+    // quedó con la entrada, así que la liberamos para que se pueda comprar.
     const rejectionMessage = describePaymentRejection(payment.status_detail);
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: "PAYMENT_FAILED",
-        mpPaymentId: payment.id ? String(payment.id) : undefined,
-        lastPaymentError: payment.status_detail ?? payment.status ?? "unknown",
-      },
-    });
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: "PAYMENT_FAILED",
+          mpPaymentId: payment.id ? String(payment.id) : undefined,
+          lastPaymentError: payment.status_detail ?? payment.status ?? "unknown",
+        },
+      }),
+      prisma.listing.update({
+        where: { id: listing.id },
+        data: { status: "ACTIVE" },
+      }),
+    ]);
 
     return NextResponse.json({ error: rejectionMessage }, { status: 402 });
   } catch (error) {
@@ -167,10 +187,16 @@ export async function POST(request: NextRequest) {
           ? error.message
           : "No pudimos procesar el pago. Probá de nuevo.";
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "PAYMENT_FAILED", lastPaymentError: message },
-    });
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: order.id },
+        data: { status: "PAYMENT_FAILED", lastPaymentError: message },
+      }),
+      prisma.listing.update({
+        where: { id: listing.id },
+        data: { status: "ACTIVE" },
+      }),
+    ]);
 
     console.error("Error creando el pago retenido", error);
     return NextResponse.json({ error: message }, { status: 502 });

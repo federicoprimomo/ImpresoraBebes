@@ -138,8 +138,9 @@ configurable:
   (`ARCA_DEFAULT_CONDICION_IVA_RECEPTOR_CUIT`, Responsable Monotributo por
   default).
 - La numeración de comprobante se resuelve pidiéndole a ARCA el último
-  autorizado + 1 en cada emisión — con alta concurrencia hace falta un
-  contador serializado propio en vez de confiar en esa consulta.
+  autorizado + 1 en cada emisión, serializado con un advisory lock de
+  Postgres por (punto de venta, tipo de comprobante) para que dos
+  facturas no pidan el mismo número en simultáneo.
 - No se genera el PDF del comprobante (con el QR que exige ARCA) — el CAE,
   número y vencimiento quedan guardados y visibles en el detalle de la
   orden, pero falta el layout imprimible.
@@ -204,11 +205,16 @@ Ver `prisma/schema.prisma`. Entidades principales:
       facturas de ARCA que fallaron) además de una tabla de comisiones
       recientes.
 
-Con esto están las 5 etapas del roadmap original. Lo que sigue no es
+Con esto están las 5 etapas del roadmap original, más una revisión general
+de concurrencia (reserva atómica de publicaciones, captura idempotente
+bajo llamados en paralelo, numeración de factura serializada) hecha
+después de un chequeo completo del código. Lo que sigue no es
 funcionalidad nueva sino terminar de cerrar las simplificaciones ya
-documentadas arriba (padrón de IVA de ARCA, PDF con QR de la factura,
-numeración de comprobante con lock de concurrencia) y cargar credenciales
-reales para probar el flujo de punta a punta con plata de verdad.
+documentadas arriba (padrón de IVA de ARCA, PDF con QR de la factura),
+soporte real de múltiples entradas por publicación (hoy cada publicación
+es de una sola entrada — el campo `quantity` existe en el modelo pero no
+hay lógica de stock todavía), y cargar credenciales reales para probar el
+flujo de punta a punta con plata de verdad.
 
 ## Nota legal
 

@@ -75,17 +75,36 @@ export async function issueCommissionInvoice(order: Order) {
 
   try {
     const auth = await getAuthTicket(config, "wsfe");
-    const lastNumber = await getLastInvoiceNumber(config, auth);
-    const numero = lastNumber + 1;
 
-    const result = await requestCae(config, auth, {
-      numero,
-      receptorDocTipo,
-      receptorDocNro,
-      condicionIvaReceptorId,
-      importeTotalArs: centsToMpAmount(totalFeeArs),
-      fecha: new Date(),
-    });
+    // "Pedile a ARCA el último número y sumale 1" no es seguro si dos
+    // facturas se emiten en simultáneo (ej. el auto-invoice del webhook de
+    // una orden se solapa con el cron liberando otra) — las dos leerían el
+    // mismo último número y pedirían el mismo CAE. Un advisory lock de
+    // Postgres, scoped a (puntoVenta, tipoComprobante) y con vida atada a
+    // la transacción, serializa ese tramo sin necesitar una tabla contador
+    // aparte. Se banca el timeout más largo porque adentro hay dos llamadas
+    // de red a ARCA (consultar último número + pedir el CAE).
+    const lockKey = config.puntoVenta * 100 + config.tipoComprobante;
+    const { numero, result } = await prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
+
+        const lastNumber = await getLastInvoiceNumber(config, auth);
+        const numero = lastNumber + 1;
+
+        const result = await requestCae(config, auth, {
+          numero,
+          receptorDocTipo,
+          receptorDocNro,
+          condicionIvaReceptorId,
+          importeTotalArs: centsToMpAmount(totalFeeArs),
+          fecha: new Date(),
+        });
+
+        return { numero, result };
+      },
+      { timeout: 20000 },
+    );
 
     if (result.approved) {
       return prisma.invoice.update({
