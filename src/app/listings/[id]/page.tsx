@@ -103,16 +103,38 @@ export default async function ListingDetailPage({
       ) : null}
 
       <div className="mt-8 rounded-xl border border-black/10 p-5 dark:border-white/10">
-        <dl className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between font-semibold">
-            <dt>Total a pagar</dt>
-            <dd>{formatArsCents(fees.amountArs)}</dd>
-          </div>
-        </dl>
-        <p className="mt-2 text-xs text-zinc-500">
-          Pagás exactamente el precio publicado — la comisión de la plataforma
-          la paga el vendedor.
-        </p>
+        {isOwnListing ? (
+          <>
+            <dl className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between font-semibold">
+                <dt>Precio de venta</dt>
+                <dd>{formatArsCents(fees.priceArs)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-zinc-600 dark:text-zinc-400">Recibís (aprox.)</dt>
+                <dd>{formatArsCents(fees.sellerPayoutArs)}</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-xs text-zinc-500">
+              El comprador paga exactamente este precio. No incluye el costo de
+              Mercado Pago por procesar el cobro (variable, aparte de nuestra
+              comisión) — se confirma cuando se libera el pago.
+            </p>
+          </>
+        ) : (
+          <>
+            <dl className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between font-semibold">
+                <dt>Total a pagar</dt>
+                <dd>{formatArsCents(fees.amountArs)}</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-xs text-zinc-500">
+              Pagás exactamente el precio publicado — la comisión de la plataforma
+              la paga el vendedor.
+            </p>
+          </>
+        )}
 
         {listing.status !== "ACTIVE" ? (
           <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
