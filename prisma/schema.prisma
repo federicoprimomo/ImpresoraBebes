@@ -337,3 +337,42 @@ model Invoice {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Contenido editable desde /admin — textos de la landing, legal, y FAQ. Si
+// una key no tiene fila acá, el código usa un default hardcodeado (ver
+// src/lib/site-content.ts) — así el sitio nunca queda en blanco si todavía
+// no se editó nada.
+// ---------------------------------------------------------------------------
+
+model SiteContent {
+  key       String   @id // ej. "hero.title", "legal.terminos.body"
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+// ---------------------------------------------------------------------------
+// Notificaciones por mail — el contenido de cada tipo de mail es editable
+// desde /admin/emails, no está hardcodeado en el código. `key` identifica
+// el evento (ver src/lib/notifications/catalog.ts para la lista completa
+// y qué variables `{{...}}` acepta cada uno).
+// ---------------------------------------------------------------------------
+
+model EmailTemplate {
+  key       String   @id
+  subject   String
+  body      String   @db.Text
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}

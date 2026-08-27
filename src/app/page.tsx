@@ -14,6 +14,7 @@ import {
 } from "@/components/icons";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents } from "@/lib/format";
+import { getFaqItems, getSiteContentMap } from "@/lib/site-content";
 
 const buyerSteps = [
   {
@@ -100,45 +101,6 @@ const comparisonRows = [
   },
 ];
 
-const faqs = [
-  {
-    q: "¿Por qué tengo que pagar antes de recibir la entrada?",
-    a: "Porque el pago no se le entrega al vendedor en ese momento — queda autorizado y retenido por Mercado Pago. Es la única forma de que el vendedor tenga la garantía de que existe un pago real antes de entregar, sin que vos pierdas el control de tu plata: si algo sale mal, todavía no se le pagó a nadie.",
-  },
-  {
-    q: "¿Qué pasa si la entrada que me mandaron es falsa o ya fue usada?",
-    a: "Tenés una ventana de tiempo después de descargarla para reclamar. Mientras el reclamo esté abierto, el pago sigue retenido — no se libera. Un administrador revisa el caso y decide si corresponde liberar el pago al vendedor o cancelar la operación.",
-  },
-  {
-    q: "¿Qué pasa si el vendedor nunca sube la entrada?",
-    a: "El pago sigue retenido, nunca capturado. Podés abrir un reclamo en cualquier momento mientras esperás, y si nadie lo resuelve antes de los 7 días que da Mercado Pago, la autorización se cae sola — no se le cobra nada a tu tarjeta más allá de esa retención temporal.",
-  },
-  {
-    q: "¿Ustedes tienen acceso a mi tarjeta o a mi cuenta bancaria?",
-    a: "No. La tarjeta se tokeniza directo en tu navegador contra Mercado Pago (nunca toca nuestros servidores), y el dinero se mueve entre tu tarjeta y la cuenta de Mercado Pago del vendedor. Nosotros solo indicamos cuándo liberar ese pago ya autorizado.",
-  },
-  {
-    q: "¿Por qué no acepta transferencia o efectivo?",
-    a: "Porque la retención del pago (autorizar sin capturar) es una función específica de los pagos con tarjeta. Una transferencia se acredita en el momento y no se puede \"retener\" de la misma forma, así que perdería el sentido del escrow.",
-  },
-  {
-    q: "¿Cuánto tarda en liberarse el pago al vendedor?",
-    a: "Apenas se confirma la entrega, o automáticamente al vencer la ventana de reclamo si el comprador no dijo nada. Mercado Pago pone un límite máximo de 7 días desde el pago para capturarlo — pasado ese plazo sin resolverse, la operación se cae y nadie cobra.",
-  },
-  {
-    q: "¿La comisión es la misma para el comprador y el vendedor?",
-    a: "La comisión se reparte entre las dos partes: una parte se suma al precio que paga el comprador, y la otra se descuenta de lo que cobra el vendedor. Se ve desglosado antes de pagar, sin letra chica.",
-  },
-  {
-    q: "¿Esto es legal?",
-    a: "Sí. El dinero nunca pasa por una cuenta propia de la plataforma — corre sobre Mercado Pago, que es quien está habilitado para procesar pagos de terceros. Y la comisión que cobramos se factura electrónicamente ante ARCA con CAE, como cualquier otro servicio formal.",
-  },
-  {
-    q: "¿Qué pasa con mis datos?",
-    a: "Los datos de pago los maneja directamente Mercado Pago. Los tokens de acceso de los vendedores conectados se guardan encriptados, y no se comparten con nadie más que con las partes involucradas en cada operación.",
-  },
-];
-
 // Si PLATFORM_FEE_BUYER_PCT/SELLER_PCT están mal configuradas,
 // calculateOrderFees() tira una excepción — antes eso solo rompía el
 // checkout, pero acá se ejecuta en la landing pública. Un typo de config
@@ -160,8 +122,22 @@ function getFeeExample() {
   }
 }
 
-export default function Home() {
+export default async function Home() {
   const example = getFeeExample();
+
+  const [content, faqs] = await Promise.all([
+    getSiteContentMap([
+      "hero.eyebrow",
+      "hero.title",
+      "hero.subtitle",
+      "problem.title",
+      "problem.body1",
+      "problem.body2",
+      "cta.title",
+      "cta.subtitle",
+    ] as const),
+    getFaqItems(),
+  ]);
 
   return (
     <main className="flex flex-1 flex-col">
@@ -175,17 +151,14 @@ export default function Home() {
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
               <LockIcon className="h-3.5 w-3.5 text-brand" />
-              Pago retenido con Mercado Pago
+              {content["hero.eyebrow"]}
             </span>
 
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-zinc-950 sm:text-5xl dark:text-zinc-50">
-              Vendé y comprá entradas sin el tira y afloja de siempre
+              {content["hero.title"]}
             </h1>
             <p className="mt-5 max-w-xl text-lg text-zinc-600 dark:text-zinc-400">
-              El comprador paga, el dinero queda retenido, y recién se libera
-              al vendedor cuando la entrada fue entregada y confirmada.
-              Ninguna de las dos partes tiene que confiar a ciegas en la
-              otra.
+              {content["hero.subtitle"]}
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -273,19 +246,13 @@ export default function Home() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-            El problema de siempre en la reventa
+            {content["problem.title"]}
           </h2>
           <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-            El vendedor no quiere entregar la entrada hasta tener la plata en
-            la mano. El comprador no quiere pagar hasta tener la entrada. Los
-            dos tienen razón en desconfiar — y ese empate es lo que termina
-            frenando ventas legítimas, o peor, abriendo la puerta a
-            estafas.
+            {content["problem.body1"]}
           </p>
           <p className="mt-4 font-medium text-zinc-800 dark:text-zinc-200">
-            Escrow.ar existe para romper ese empate: alguien de confianza
-            sostiene el pago en el medio hasta que la entrega quede
-            confirmada.
+            {content["problem.body2"]}
           </p>
         </div>
       </section>
@@ -507,15 +474,15 @@ export default function Home() {
           </h2>
           <div className="mt-8 flex flex-col divide-y divide-black/10 dark:divide-white/10">
             {faqs.map((item) => (
-              <details key={item.q} className="group py-4">
+              <details key={item.id} className="group py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-zinc-950 marker:content-none dark:text-zinc-50">
-                  {item.q}
+                  {item.question}
                   <span className="shrink-0 text-zinc-400 transition-transform group-open:rotate-45">
                     +
                   </span>
                 </summary>
                 <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                  {item.a}
+                  {item.answer}
                 </p>
               </details>
             ))}
@@ -527,11 +494,10 @@ export default function Home() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-hover px-8 py-16 text-center shadow-xl">
           <h2 className="text-2xl font-semibold text-white sm:text-3xl">
-            ¿Listo para operar sin desconfianza?
+            {content["cta.title"]}
           </h2>
           <p className="mx-auto mt-3 max-w-md text-white/80">
-            Publicá tu entrada o buscá una para comprar — el pago queda
-            protegido de punta a punta.
+            {content["cta.subtitle"]}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link

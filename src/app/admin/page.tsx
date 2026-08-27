@@ -139,9 +139,17 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-16">
-      <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-        Panel de administración
-      </h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+          Panel de administración
+        </h1>
+        <Link
+          href="/admin/content"
+          className="flex h-9 shrink-0 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
+        >
+          Editar contenido del sitio
+        </Link>
+      </div>
 
       <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
         <div className="flex items-center justify-between">
