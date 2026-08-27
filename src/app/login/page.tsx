@@ -2,10 +2,15 @@ import { redirect } from "next/navigation";
 
 import { auth, signIn } from "@/auth";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
   const session = await auth();
   if (session?.user) {
-    redirect("/");
+    redirect(postLoginPath(callbackUrl));
   }
 
   return (
@@ -23,7 +28,7 @@ export default async function LoginPage() {
           className="mt-6"
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: "/" });
+            await signIn("google", { redirectTo: postLoginPath(callbackUrl) });
           }}
         >
           <button
@@ -36,4 +41,19 @@ export default async function LoginPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * A dónde mandar después de loguearse. La lógica de "si sos admin, vas a
+ * /admin" vive en /post-login (necesita el session recién creado, así que
+ * no la podemos resolver acá antes de que termine el login) — esto solo le
+ * pasa el callbackUrl para que la respete si no sos admin.
+ */
+function postLoginPath(callbackUrl?: string): string {
+  const params = new URLSearchParams();
+  if (callbackUrl?.startsWith("/")) {
+    params.set("callbackUrl", callbackUrl);
+  }
+  const query = params.toString();
+  return `/post-login${query ? `?${query}` : ""}`;
 }
