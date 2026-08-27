@@ -14,9 +14,10 @@ import {
 } from "@/components/icons";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents } from "@/lib/format";
-import { getFaqItems, getSiteContentMap } from "@/lib/site-content";
+import { getFaqItems, getSiteContentMap, isPublicBrowsingEnabled } from "@/lib/site-content";
 import { captureError } from "@/lib/monitoring";
 import { MercadoPagoBadge } from "@/components/mercadopago-badge";
+import { auth } from "@/auth";
 
 // Paleta para los chips de ícono de "Cómo funciona" y "Por qué es seguro"
 // — antes todos usaban el mismo lila (brand-muted) y quedaba muy plano.
@@ -138,7 +139,7 @@ function getFeeExample() {
 export default async function Home() {
   const example = getFeeExample();
 
-  const [content, faqs] = await Promise.all([
+  const [content, faqs, session, publicBrowsing] = await Promise.all([
     getSiteContentMap([
       "hero.eyebrow",
       "hero.title",
@@ -150,7 +151,10 @@ export default async function Home() {
       "cta.subtitle",
     ] as const),
     getFaqItems(),
+    auth(),
+    isPublicBrowsingEnabled(),
   ]);
+  const showListingsLinks = publicBrowsing || session?.user?.role === "ADMIN";
 
   return (
     <main className="flex flex-1 flex-col">
@@ -179,12 +183,14 @@ export default async function Home() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/listings"
-                className="flex h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-medium text-brand-foreground shadow-md shadow-brand/20 transition-colors hover:bg-brand-hover"
-              >
-                Ver entradas en venta
-              </Link>
+              {showListingsLinks ? (
+                <Link
+                  href="/listings"
+                  className="flex h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-medium text-brand-foreground shadow-md shadow-brand/20 transition-colors hover:bg-brand-hover"
+                >
+                  Ver entradas en venta
+                </Link>
+              ) : null}
               <Link
                 href="/listings/new"
                 className="flex h-12 items-center justify-center rounded-full border border-black/10 bg-white px-6 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:bg-transparent dark:hover:bg-white/[.06]"
@@ -532,12 +538,14 @@ export default async function Home() {
             {content["cta.subtitle"]}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link
-              href="/listings"
-              className="flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-medium text-brand shadow-md transition-colors hover:bg-brand-muted"
-            >
-              Ver entradas en venta
-            </Link>
+            {showListingsLinks ? (
+              <Link
+                href="/listings"
+                className="flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-medium text-brand shadow-md transition-colors hover:bg-brand-muted"
+              >
+                Ver entradas en venta
+              </Link>
+            ) : null}
             <Link
               href="/listings/new"
               className="flex h-12 items-center justify-center rounded-full border border-white/30 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
@@ -561,11 +569,13 @@ export default async function Home() {
           <div>
             <p className="font-medium text-zinc-950 dark:text-zinc-50">Producto</p>
             <ul className="mt-2 flex flex-col gap-1.5 text-zinc-600 dark:text-zinc-400">
-              <li>
-                <Link href="/listings" className="hover:underline">
-                  Ver entradas en venta
-                </Link>
-              </li>
+              {showListingsLinks ? (
+                <li>
+                  <Link href="/listings" className="hover:underline">
+                    Ver entradas en venta
+                  </Link>
+                </li>
+              ) : null}
               <li>
                 <Link href="/listings/new" className="hover:underline">
                   Publicar una entrada

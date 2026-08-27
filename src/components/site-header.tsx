@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { auth, signOut } from "@/auth";
 import { LockIcon } from "@/components/icons";
+import { isPublicBrowsingEnabled } from "@/lib/site-content";
 
 export async function SiteHeader() {
-  const session = await auth();
+  const [session, publicBrowsing] = await Promise.all([auth(), isPublicBrowsingEnabled()]);
+  const canSeeListingsLink = publicBrowsing || session?.user?.role === "ADMIN";
 
   return (
     <header className="sticky top-0 z-10 border-b border-black/10 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80">
@@ -17,9 +19,11 @@ export async function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-5 text-sm text-zinc-600 dark:text-zinc-400">
-          <Link href="/listings" className="hover:text-zinc-950 dark:hover:text-zinc-50">
-            Ver entradas
-          </Link>
+          {canSeeListingsLink ? (
+            <Link href="/listings" className="hover:text-zinc-950 dark:hover:text-zinc-50">
+              Ver entradas
+            </Link>
+          ) : null}
 
           {session?.user ? (
             <>

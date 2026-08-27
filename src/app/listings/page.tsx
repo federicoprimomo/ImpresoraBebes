@@ -1,11 +1,30 @@
 import Link from "next/link";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
+import { isPublicBrowsingEnabled } from "@/lib/site-content";
 
 export const dynamic = "force-dynamic";
 
 export default async function ListingsPage() {
+  const [session, publicBrowsing] = await Promise.all([auth(), isPublicBrowsingEnabled()]);
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  if (!publicBrowsing && !isAdmin) {
+    return (
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
+        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+          Entradas en venta
+        </h1>
+        <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+          La búsqueda pública de entradas no está disponible por el momento. Si tenés
+          el link directo a una entrada puntual, podés seguir usándolo con normalidad.
+        </p>
+      </main>
+    );
+  }
+
   const listings = await prisma.listing.findMany({
     where: { status: "ACTIVE" },
     orderBy: { createdAt: "desc" },

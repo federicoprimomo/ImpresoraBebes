@@ -158,3 +158,21 @@ export async function setSiteContent(key: string, value: string): Promise<void> 
     update: { value },
   });
 }
+
+/**
+ * SiteContent guarda texto, pero alcanza para un booleano simple guardando
+ * "true"/"false" — no vale la pena una tabla aparte solo para esto.
+ */
+const LISTINGS_PUBLIC_BROWSING_KEY = "listings.publicBrowsingEnabled";
+
+/** Si está apagado, /listings (el buscador público) queda oculto para
+ * cualquiera que no sea admin — publicar y los links directos a una
+ * entrada puntual siguen andando igual, esto no los toca. */
+export async function isPublicBrowsingEnabled(): Promise<boolean> {
+  const value = await getSiteContent(LISTINGS_PUBLIC_BROWSING_KEY);
+  return value !== "false"; // default: habilitado
+}
+
+export async function setPublicBrowsingEnabled(enabled: boolean): Promise<void> {
+  await setSiteContent(LISTINGS_PUBLIC_BROWSING_KEY, enabled ? "true" : "false");
+}

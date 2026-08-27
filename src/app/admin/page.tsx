@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { getArcaConfig } from "@/lib/arca/config";
+import { isPublicBrowsingEnabled, setPublicBrowsingEnabled } from "@/lib/site-content";
 import { CheckCircleIcon, XCircleIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +106,7 @@ export default async function AdminPage() {
     openDisputes,
     failedInvoices,
     recentCommissions,
+    publicBrowsingEnabled,
   ] = await Promise.all([
     prisma.commissionLedgerEntry.aggregate({
       _sum: { totalFeeArs: true, buyerFeeArs: true, sellerFeeArs: true },
@@ -138,6 +141,7 @@ export default async function AdminPage() {
         },
       },
     }),
+    isPublicBrowsingEnabled(),
   ]);
 
   const statusCounts = new Map<string, number>(
@@ -146,6 +150,16 @@ export default async function AdminPage() {
 
   const setupChecks = getSetupChecks();
   const pendingSetup = setupChecks.filter((check) => !check.ok);
+
+  async function toggleListingsVisibility(formData: FormData) {
+    "use server";
+    const session = await auth();
+    if (session?.user?.role !== "ADMIN") redirect("/");
+    await setPublicBrowsingEnabled(formData.get("enabled") === "true");
+    revalidatePath("/");
+    revalidatePath("/listings");
+    revalidatePath("/admin");
+  }
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-16">
@@ -199,6 +213,33 @@ export default async function AdminPage() {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium">Búsqueda pública de entradas</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Con esto apagado, nadie que no sea admin ve la opción de buscar entradas
+              (ni el link en el header ni en la landing), y /listings muestra un aviso
+              de &quot;no disponible&quot;. Publicar una entrada y los links directos a
+              una entrada puntual siguen funcionando igual.
+            </p>
+          </div>
+          <form action={toggleListingsVisibility} className="shrink-0">
+            <input type="hidden" name="enabled" value={publicBrowsingEnabled ? "false" : "true"} />
+            <button
+              type="submit"
+              className={
+                publicBrowsingEnabled
+                  ? "flex h-9 items-center justify-center rounded-full bg-green-600 px-4 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                  : "flex h-9 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
+              }
+            >
+              {publicBrowsingEnabled ? "Habilitada · apagar" : "Deshabilitada · encender"}
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
