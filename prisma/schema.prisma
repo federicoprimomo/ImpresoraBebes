@@ -122,9 +122,10 @@ model ConnectedAccount {
 
 enum ListingStatus {
   ACTIVE // publicada, disponible para compra
+  PAUSED // el vendedor la pausó a mano — oculta y no comprable, pero no es definitivo como CANCELLED
   RESERVED // hay una orden en curso sobre ella
   SOLD // vendida y liberada
-  CANCELLED // el vendedor la dio de baja
+  CANCELLED // el vendedor la dio de baja (definitivo)
 }
 
 model Listing {

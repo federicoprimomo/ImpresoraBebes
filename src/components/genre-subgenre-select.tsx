@@ -13,10 +13,19 @@ type GenreOption = {
  * Necesita ser client component porque el filtrado es puramente de UI (el
  * form sigue siendo un <form action={serverAction}> normal — esto solo
  * decide qué mostrar en el segundo <select>, la validación real pasa del
- * lado del server).
+ * lado del server). Los `default*` son para precargar en el form de
+ * editar — en el de publicar simplemente no se pasan.
  */
-export function GenreSubgenreSelect({ genres }: { genres: GenreOption[] }) {
-  const [genreId, setGenreId] = useState("");
+export function GenreSubgenreSelect({
+  genres,
+  defaultGenreId = "",
+  defaultSubgenreId = "",
+}: {
+  genres: GenreOption[];
+  defaultGenreId?: string;
+  defaultSubgenreId?: string;
+}) {
+  const [genreId, setGenreId] = useState(defaultGenreId);
   const subgenres = genres.find((g) => g.id === genreId)?.subgenres ?? [];
 
   return (
@@ -43,7 +52,7 @@ export function GenreSubgenreSelect({ genres }: { genres: GenreOption[] }) {
         <select
           name="subgenreId"
           disabled={subgenres.length === 0}
-          defaultValue=""
+          defaultValue={defaultSubgenreId}
           className="rounded-lg border border-black/10 px-3 py-2 disabled:opacity-50 dark:border-white/10 dark:bg-transparent"
         >
           <option value="">Sin especificar</option>
