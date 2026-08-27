@@ -10,10 +10,17 @@ import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
  * Selects dependientes: elegir una provincia filtra las opciones de
  * localidad, precargadas desde el dataset oficial (ver
  * lib/localidades-argentina.ts) — no dependen de que ya haya
- * publicaciones reales en esa zona.
+ * publicaciones reales en esa zona. Los `default*` son para precargar en
+ * el form de editar — en el de publicar simplemente no se pasan.
  */
-export function ProvinciaLocalidadSelect() {
-  const [provincia, setProvincia] = useState<Provincia | "">("");
+export function ProvinciaLocalidadSelect({
+  defaultProvincia = "",
+  defaultLocalidad = "",
+}: {
+  defaultProvincia?: Provincia | "";
+  defaultLocalidad?: string;
+}) {
+  const [provincia, setProvincia] = useState<Provincia | "">(defaultProvincia);
   const localidades = provincia ? LOCALIDADES_ARGENTINA[provincia] : [];
 
   return (
@@ -40,7 +47,7 @@ export function ProvinciaLocalidadSelect() {
         <select
           name="localidad"
           disabled={localidades.length === 0}
-          defaultValue=""
+          defaultValue={defaultLocalidad}
           className="rounded-lg border border-black/10 px-3 py-2 disabled:opacity-50 dark:border-white/10 dark:bg-transparent"
         >
           <option value="">Sin especificar</option>

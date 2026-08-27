@@ -3,16 +3,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
-import { parseArgentinaDateTimeLocal } from "@/lib/format";
-import { PROVINCIA_OPTIONS, DELIVERY_PLATFORMS } from "@/lib/argentina";
-import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
+import { parseListingFields } from "@/lib/listing";
+import { DELIVERY_PLATFORMS } from "@/lib/argentina";
 import { getGenresWithSubgenres } from "@/lib/genres";
 import { getFeePercentages, type FeePercentages } from "@/lib/fees";
 import { captureError } from "@/lib/monitoring";
 import { GenreSubgenreSelect } from "@/components/genre-subgenre-select";
 import { ProvinciaLocalidadSelect } from "@/components/provincia-localidad-select";
 import { PriceFeeEstimate } from "@/components/price-fee-estimate";
-import type { Provincia } from "@prisma/client";
 
 // Igual que en la landing (getFeeExample): si la config de comisión está
 // mal (env var inválida), que se rompa el cálculo en vivo del form no
@@ -38,61 +36,8 @@ async function createListing(formData: FormData) {
     redirect("/login");
   }
 
-  const title = String(formData.get("title") ?? "").trim();
-  const artistName = String(formData.get("artistName") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const eventDateRaw = String(formData.get("eventDate") ?? "").trim();
-  const priceRaw = String(formData.get("price") ?? "").trim();
-  const platform = String(formData.get("platform") ?? "").trim();
-  const provinciaRaw = String(formData.get("provincia") ?? "").trim();
-  const localidad = String(formData.get("localidad") ?? "").trim();
-  const genreId = String(formData.get("genreId") ?? "").trim();
-  const subgenreId = String(formData.get("subgenreId") ?? "").trim();
-  const isPublic = String(formData.get("visibility") ?? "public") !== "private";
+  const fields = await parseListingFields(formData);
   const photo = formData.get("photo");
-
-  const priceArs = Math.round(Number(priceRaw.replace(",", ".")) * 100);
-
-  if (!title || !Number.isFinite(priceArs) || priceArs <= 0) {
-    throw new Error("Completá al menos el título y un precio válido.");
-  }
-
-  let provincia: Provincia | null = null;
-  if (provinciaRaw) {
-    const match = PROVINCIA_OPTIONS.find((option) => option.value === provinciaRaw);
-    if (!match) throw new Error("Provincia inválida.");
-    provincia = match.value;
-  }
-
-  // La localidad viene de un <select> precargado (LOCALIDADES_ARGENTINA),
-  // así que igual que con género/subgénero, se valida que pertenezca a la
-  // provincia elegida — el filtrado del segundo <select> es solo de UI.
-  let localidadValida: string | null = null;
-  if (localidad) {
-    if (!provincia) throw new Error("Elegí una provincia antes de la localidad.");
-    if (!LOCALIDADES_ARGENTINA[provincia].includes(localidad)) {
-      throw new Error("Localidad inválida para la provincia elegida.");
-    }
-    localidadValida = localidad;
-  }
-
-  // Si eligió subgénero tiene que haber elegido el género al que pertenece
-  // — se valida acá porque el filtrado del segundo <select> es solo de UI.
-  let validGenreId: string | null = null;
-  let validSubgenreId: string | null = null;
-  if (genreId) {
-    const genre = await prisma.genre.findUnique({
-      where: { id: genreId },
-      include: { subgenres: true },
-    });
-    if (!genre) throw new Error("Género inválido.");
-    validGenreId = genre.id;
-    if (subgenreId) {
-      const subgenre = genre.subgenres.find((s) => s.id === subgenreId);
-      if (!subgenre) throw new Error("Subgénero inválido para el género elegido.");
-      validSubgenreId = subgenre.id;
-    }
-  }
 
   let photoStorageKey: string | null = null;
   let photoContentType: string | null = null;
@@ -110,19 +55,19 @@ async function createListing(formData: FormData) {
 
   const listing = await prisma.listing.create({
     data: {
-      title,
-      artistName: artistName || null,
-      description: description || null,
-      eventDate: parseArgentinaDateTimeLocal(eventDateRaw),
-      priceArs,
-      platform: platform || null,
-      provincia,
-      localidad: localidadValida,
-      genreId: validGenreId,
-      subgenreId: validSubgenreId,
+      title: fields.title,
+      artistName: fields.artistName,
+      description: fields.description,
+      eventDate: fields.eventDate,
+      priceArs: fields.priceArs,
+      platform: fields.platform,
+      provincia: fields.provincia,
+      localidad: fields.localidad,
+      genreId: fields.genreId,
+      subgenreId: fields.subgenreId,
       photoStorageKey,
       photoContentType,
-      isPublic,
+      isPublic: fields.isPublic,
       // El modelo de datos tiene un campo `quantity`, pero todavía no hay
       // lógica de stock (decremento atómico, disponibilidad parcial, etc.)
       // — se vende de a una entrada por publicación hasta que eso se

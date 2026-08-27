@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatArsCents, formatDateTime, parseArgentinaDateTimeLocal } from "./format";
+import {
+  formatArsCents,
+  formatDateTime,
+  parseArgentinaDateTimeLocal,
+  toArgentinaDateTimeLocalInput,
+} from "./format";
 
 describe("formatArsCents", () => {
   it("formatea centavos como pesos argentinos", () => {
@@ -59,5 +64,24 @@ describe("parseArgentinaDateTimeLocal", () => {
   it("acepta el valor con segundos incluidos", () => {
     const parsed = parseArgentinaDateTimeLocal("2026-08-27T18:00:30");
     expect(parsed?.toISOString()).toBe("2026-08-27T21:00:30.000Z");
+  });
+});
+
+describe("toArgentinaDateTimeLocalInput", () => {
+  it("da string vacío para null/undefined", () => {
+    expect(toArgentinaDateTimeLocalInput(null)).toBe("");
+    expect(toArgentinaDateTimeLocalInput(undefined)).toBe("");
+  });
+
+  it("es la inversa de parseArgentinaDateTimeLocal — round-trip sin corrimiento", () => {
+    // Precondición del form de editar: precargar el <input datetime-local>
+    // con lo que ya está guardado tiene que reproducir el mismo string que
+    // el usuario habría tipeado, no uno corrido por el huso del proceso.
+    const parsed = parseArgentinaDateTimeLocal("2026-08-27T18:00");
+    expect(toArgentinaDateTimeLocalInput(parsed)).toBe("2026-08-27T18:00");
+  });
+
+  it("acepta un string de fecha además de un Date", () => {
+    expect(toArgentinaDateTimeLocalInput("2026-08-27T21:00:00.000Z")).toBe("2026-08-27T18:00");
   });
 });

@@ -46,3 +46,17 @@ export function parseArgentinaDateTimeLocal(raw: string): Date | null {
   const parsed = new Date(`${withSeconds}-03:00`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
+
+/**
+ * Inversa de `parseArgentinaDateTimeLocal`: para precargar un
+ * `eventDate` guardado en el `defaultValue` de un
+ * <input type="datetime-local"> en el form de editar. Como Argentina es
+ * UTC-3 fijo, alcanza con correr el instante 3hs y leer los componentes en
+ * UTC — evita depender de Intl para armar el string exacto que ese input
+ * espera ("YYYY-MM-DDTHH:mm").
+ */
+export function toArgentinaDateTimeLocalInput(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const shifted = new Date(new Date(date).getTime() - 3 * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 16);
+}

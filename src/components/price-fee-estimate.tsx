@@ -15,8 +15,12 @@ import type { FeePercentages } from "@/lib/fees";
  * ver lib/fees.ts) para no hardcodear el 10% acá y desincronizarlo si en
  * algún momento cambia la config.
  */
-export function PriceFeeEstimate({ buyerFeePct, sellerFeePct }: FeePercentages) {
-  const [raw, setRaw] = useState("");
+export function PriceFeeEstimate({
+  buyerFeePct,
+  sellerFeePct,
+  defaultValue = "",
+}: FeePercentages & { defaultValue?: string }) {
+  const [raw, setRaw] = useState(defaultValue);
 
   const priceArs = Math.round(Number(raw.replace(",", ".")) * 100);
   const valid = Number.isFinite(priceArs) && priceArs > 0;
