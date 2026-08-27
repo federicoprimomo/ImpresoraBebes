@@ -45,6 +45,10 @@ automáticamente en ARCA (ex-AFIP).
   `mercadopago` (OAuth, `Payment.create`/`capture`, `WebhookSignatureValidator`)
 - **ARCA (ex-AFIP)** — WSAA + WSFEv1 para facturación electrónica de la
   comisión, con firma CMS/PKCS#7 vía `node-forge`
+- **Resend** — notificaciones por mail de los eventos de una orden, con
+  plantillas editables desde `/admin/emails`
+- **Sentry** (`@sentry/nextjs`) — monitoreo de errores en producción
+- **Vitest** — tests unitarios y de integración (contra Postgres real)
 
 ## Setup local
 
@@ -82,6 +86,10 @@ Completá (ver comentarios en `.env.example` para el detalle de cada una):
 - `CRON_SECRET`: para autorizar al worker de capturas (ver más abajo).
 - **ARCA** (opcional — ver sección dedicada más abajo): `ARCA_ENABLED`,
   `ARCA_CUIT`, `ARCA_CERT_BASE64`/`ARCA_KEY_BASE64`, etc.
+- **Resend** (opcional): `RESEND_API_KEY`/`EMAIL_FROM` — sin esto, las
+  notificaciones por mail de una orden simplemente no se envían.
+- **Sentry** (opcional): `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` — sin esto,
+  el monitoreo de errores queda inerte.
 
 ### 3. Instalar y migrar
 
@@ -147,14 +155,37 @@ configurable:
 
 ## Scripts
 
-| Script              | Qué hace                                   |
-| -------------------- | ------------------------------------------- |
-| `npm run dev`         | Server de desarrollo                        |
-| `npm run build`       | Build de producción                         |
-| `npm run lint`        | Lint del proyecto                           |
-| `npm run db:migrate`  | Corre migraciones de Prisma en desarrollo   |
-| `npm run db:studio`   | Abre Prisma Studio (explorar la base)       |
-| `npm run db:seed`     | Corre `prisma/seed.ts` (promover un admin)  |
+| Script                    | Qué hace                                                    |
+| ------------------------- | ------------------------------------------------------------ |
+| `npm run dev`              | Server de desarrollo                                         |
+| `npm run build`            | Build de producción                                          |
+| `npm run lint`             | Lint del proyecto                                            |
+| `npm run db:migrate`       | Corre migraciones de Prisma en desarrollo                    |
+| `npm run db:studio`        | Abre Prisma Studio (explorar la base)                        |
+| `npm run db:seed`          | Corre `prisma/seed.ts` (promover un admin, cargar FAQ default) |
+| `npm run test`             | Tests unitarios (sin base de datos)                          |
+| `npm run test:watch`       | Tests unitarios en modo watch                                |
+| `npm run test:integration` | Tests de integración (necesita `DATABASE_URL`)               |
+
+## Tests
+
+Dos niveles, separados a propósito:
+
+- **Unitarios** (`src/**/*.test.ts`, `npm run test`) — funciones puras sin
+  base de datos: cálculo de comisiones, formateo, plantillas de mail,
+  firma/verificación del `state` de OAuth, helpers de XML de ARCA.
+- **Integración** (`tests/integration/*.test.ts`, `npm run test:integration`)
+  — contra una base Postgres real (la de `DATABASE_URL`). Cubren
+  específicamente las condiciones de carrera del flujo de pago: dos
+  compradores reservando la misma publicación al mismo tiempo, dos
+  capturas concurrentes de la misma orden convergiendo a la misma
+  `idempotencyKey`, apertura/resolución de disputas, entrega con hash
+  duplicado, contenido editable. Mockean Mercado Pago (`vi.mock`) pero
+  escriben de verdad en la base — al terminar cada test borran lo que
+  crearon.
+
+CI (`.github/workflows/ci.yml`) corre lint, chequeo de tipos, ambos niveles
+de test contra un servicio de Postgres, y el build, en cada push/PR.
 
 ## Modelo de datos
 
@@ -208,13 +239,20 @@ Ver `prisma/schema.prisma`. Entidades principales:
 Con esto están las 5 etapas del roadmap original, más una revisión general
 de concurrencia (reserva atómica de publicaciones, captura idempotente
 bajo llamados en paralelo, numeración de factura serializada) hecha
-después de un chequeo completo del código. Lo que sigue no es
-funcionalidad nueva sino terminar de cerrar las simplificaciones ya
-documentadas arriba (padrón de IVA de ARCA, PDF con QR de la factura),
-soporte real de múltiples entradas por publicación (hoy cada publicación
-es de una sola entrada — el campo `quantity` existe en el modelo pero no
-hay lógica de stock todavía), y cargar credenciales reales para probar el
-flujo de punta a punta con plata de verdad.
+después de un chequeo completo del código.
+
+Después de la revisión se sumó, sin cambiar el flujo de pago en sí:
+contenido editable desde `/admin/content` (textos de la landing, FAQ,
+legales), notificaciones por mail de los 8 eventos de una orden con
+plantillas editables en `/admin/emails`, monitoreo de errores con Sentry,
+y la suite de tests (unitarios + integración) con CI en GitHub Actions.
+
+Lo que sigue no es funcionalidad nueva sino terminar de cerrar las
+simplificaciones ya documentadas arriba (padrón de IVA de ARCA, PDF con QR
+de la factura), soporte real de múltiples entradas por publicación (hoy
+cada publicación es de una sola entrada — el campo `quantity` existe en el
+modelo pero no hay lógica de stock todavía), y cargar credenciales reales
+para probar el flujo de punta a punta con plata de verdad.
 
 ## Nota legal
 

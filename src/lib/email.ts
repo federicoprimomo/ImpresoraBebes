@@ -120,7 +120,8 @@ export function resetEmailConfigCache() {
   cachedConfig = undefined;
 }
 
-function renderTemplate(
+/** Exportado solo para tests — el resto del código usa notify()/notifyOrderEvent(). */
+export function renderTemplate(
   template: { subject: string; body: string },
   vars: Record<string, string>,
 ) {

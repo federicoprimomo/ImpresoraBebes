@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    # Postgres real para las migraciones y los tests de integración — son
+    # justamente los que cubren las condiciones de carrera (reserva de una
+    # publicación, captura de un pago) que no se pueden probar en serio
+    # contra una base mockeada.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: escrow_ci
+          POSTGRES_PASSWORD: escrow_ci
+          POSTGRES_DB: escrow_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U escrow_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://escrow_ci:escrow_ci@localhost:5432/escrow_ci?schema=public
+      # Placeholders suficientes para que el build no rompa por falta de
+      # config — nada de esto pega a un servicio real en CI.
+      AUTH_SECRET: ci-placeholder-secret-not-for-prod
+      MERCADOPAGO_ACCESS_TOKEN: TEST-ci-placeholder
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Aplicar migraciones de Prisma
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Chequeo de tipos
+        run: npx tsc --noEmit
+
+      - name: Tests unitarios
+        run: npm run test
+
+      - name: Tests de integración (contra el Postgres del servicio)
+        run: npm run test:integration
+
+      - name: Build de producción
+        run: npm run build
