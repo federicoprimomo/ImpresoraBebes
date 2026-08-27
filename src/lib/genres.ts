@@ -11,16 +11,25 @@ export async function getGenresWithSubgenres() {
 }
 
 /**
- * Localidades ya usadas en publicaciones activas, para armar el filtro de
- * /listings sin mantener una base de miles de localidades a mano. Se
- * agrupa por provincia porque el mismo nombre de localidad puede repetirse
- * en más de una.
+ * Localidades ya usadas en publicaciones activas y PÚBLICAS, para armar el
+ * filtro de /listings sin mantener una base de miles de localidades a
+ * mano. Se agrupa por provincia porque el mismo nombre de localidad puede
+ * repetirse en más de una.
+ *
+ * isPublic: true es a propósito — si no, una entrada privada "se notaría"
+ * apareciendo como opción en el filtro aunque nunca se liste, que es
+ * exactamente la fuga de información que la privacidad debería evitar.
  */
 export async function getUsedLocalidades(): Promise<
   Array<{ provincia: Provincia; localidad: string }>
 > {
   const rows = await prisma.listing.findMany({
-    where: { status: "ACTIVE", localidad: { not: null }, provincia: { not: null } },
+    where: {
+      status: "ACTIVE",
+      isPublic: true,
+      localidad: { not: null },
+      provincia: { not: null },
+    },
     select: { provincia: true, localidad: true },
     distinct: ["provincia", "localidad"],
   });

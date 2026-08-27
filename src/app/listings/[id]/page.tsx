@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { PROVINCIA_LABELS } from "@/lib/argentina";
+import { ShareButtons } from "@/components/share-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,16 @@ export default async function ListingDetailPage({
         </div>
       ) : null}
 
-      <p className="text-sm text-zinc-500">
-        {listing.eventDate ? formatDateTime(listing.eventDate) : "Fecha a confirmar"}
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-zinc-500">
+          {listing.eventDate ? formatDateTime(listing.eventDate) : "Fecha a confirmar"}
+        </p>
+        {!listing.isPublic ? (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            Privada
+          </span>
+        ) : null}
+      </div>
       <h1 className="mt-1 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
         {listing.title}
       </h1>
@@ -104,9 +112,19 @@ export default async function ListingDetailPage({
             Esta entrada ya no está disponible.
           </p>
         ) : isOwnListing ? (
-          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-            Esta es tu propia publicación.
-          </p>
+          <div className="mt-4">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Esta es tu propia publicación
+              {!listing.isPublic ? " — es privada, no aparece en /listings" : ""}.
+              {" "}Compartí el link para que el comprador entre directo:
+            </p>
+            <div className="mt-3">
+              <ShareButtons
+                url={`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/listings/${listing.id}`}
+                title={listing.title}
+              />
+            </div>
+          </div>
         ) : !sellerConnected ? (
           <p className="mt-4 text-sm text-amber-700 dark:text-amber-400">
             El vendedor todavía no conectó su cuenta de Mercado Pago, así que

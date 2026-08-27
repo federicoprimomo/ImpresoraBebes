@@ -137,6 +137,13 @@ model Listing {
   quantity    Int           @default(1)
   status      ListingStatus @default(ACTIVE)
 
+  // Si es false, no aparece en /listings (ni en su grilla ni en los
+  // filtros) aunque la búsqueda pública esté habilitada — pero el link
+  // directo a /listings/[id] sigue funcionando. Es la privacidad de ESTA
+  // publicación puntual; el toggle de site-content es a nivel sitio
+  // entero, son cosas independientes.
+  isPublic Boolean @default(true)
+
   // Plataforma que va a hacer el envío real de la entrada (Ticketek,
   // AllAccess, etc.) — puramente informativo, la entrega en sí siempre pasa
   // por la plataforma vía DeliveryFile, esto es solo para que el comprador

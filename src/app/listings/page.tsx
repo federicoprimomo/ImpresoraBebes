@@ -102,7 +102,7 @@ export default async function ListingsPage({
     (row) => !provincia || row.provincia === provincia,
   );
 
-  const where: Prisma.ListingWhereInput = { status: "ACTIVE" };
+  const where: Prisma.ListingWhereInput = { status: "ACTIVE", isPublic: true };
   if (q) {
     where.OR = [
       { title: { contains: q, mode: "insensitive" } },

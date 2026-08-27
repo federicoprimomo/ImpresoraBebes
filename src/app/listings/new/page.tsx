@@ -45,6 +45,7 @@ async function createListing(formData: FormData) {
   const localidad = String(formData.get("localidad") ?? "").trim();
   const genreId = String(formData.get("genreId") ?? "").trim();
   const subgenreId = String(formData.get("subgenreId") ?? "").trim();
+  const isPublic = String(formData.get("visibility") ?? "public") !== "private";
   const photo = formData.get("photo");
 
   const priceArs = Math.round(Number(priceRaw.replace(",", ".")) * 100);
@@ -106,6 +107,7 @@ async function createListing(formData: FormData) {
       subgenreId: validSubgenreId,
       photoStorageKey,
       photoContentType,
+      isPublic,
       // El modelo de datos tiene un campo `quantity`, pero todavía no hay
       // lógica de stock (decremento atómico, disponibilidad parcial, etc.)
       // — se vende de a una entrada por publicación hasta que eso se
@@ -246,6 +248,31 @@ export default async function NewListingPage() {
         </label>
 
         <PriceFeeEstimate {...getSafeFeePercentages()} />
+
+        <fieldset className="flex flex-col gap-2 text-sm">
+          <legend className="mb-1 font-medium text-zinc-950 dark:text-zinc-50">
+            Visibilidad
+          </legend>
+          <label className="flex items-start gap-2">
+            <input type="radio" name="visibility" value="public" defaultChecked className="mt-0.5" />
+            <span>
+              <span className="font-medium text-zinc-950 dark:text-zinc-50">Pública</span>
+              <span className="block text-xs text-zinc-500">
+                Aparece en el buscador de /listings, para cualquiera.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input type="radio" name="visibility" value="private" className="mt-0.5" />
+            <span>
+              <span className="font-medium text-zinc-950 dark:text-zinc-50">Privada</span>
+              <span className="block text-xs text-zinc-500">
+                No se lista en ningún lado — solo entra quien tenga el link
+                directo (podés compartirlo después de publicar).
+              </span>
+            </span>
+          </label>
+        </fieldset>
 
         <p className="text-xs text-zinc-500">
           Por ahora cada publicación es para una sola entrada. Si tenés más
