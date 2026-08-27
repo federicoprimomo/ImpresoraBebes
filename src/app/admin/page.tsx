@@ -169,6 +169,12 @@ export default async function AdminPage() {
         </h1>
         <div className="flex shrink-0 gap-2">
           <Link
+            href="/admin/categories"
+            className="flex h-9 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
+          >
+            Géneros y subgéneros
+          </Link>
+          <Link
             href="/admin/content"
             className="flex h-9 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
           >
