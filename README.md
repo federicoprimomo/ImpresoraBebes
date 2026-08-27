@@ -198,7 +198,17 @@ Ver `prisma/schema.prisma`. Entidades principales:
       autorización. Si nadie lo resuelve antes de los 7 días de Mercado
       Pago, el worker lo cierra solo como reembolso y reactiva la
       publicación.
-- [ ] **Etapa 5** — Panel de admin: comisiones y reportes agregados.
+- [x] **Etapa 5** — Panel de admin (`/admin`): comisión total cobrada,
+      volumen transaccionado, vendedores conectados, órdenes por estado,
+      y accesos directos a lo que necesita atención (reclamos abiertos,
+      facturas de ARCA que fallaron) además de una tabla de comisiones
+      recientes.
+
+Con esto están las 5 etapas del roadmap original. Lo que sigue no es
+funcionalidad nueva sino terminar de cerrar las simplificaciones ya
+documentadas arriba (padrón de IVA de ARCA, PDF con QR de la factura,
+numeración de comprobante con lock de concurrencia) y cargar credenciales
+reales para probar el flujo de punta a punta con plata de verdad.
 
 ## Nota legal
 
