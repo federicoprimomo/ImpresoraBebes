@@ -59,10 +59,16 @@ export default async function CheckoutPage({
       </div>
 
       <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-500">
-        Pagás exactamente el precio publicado, sin nada sumado — la
-        comisión de la plataforma la paga el vendedor. Este pago se retiene
-        y solo se libera al vendedor cuando la entrada se confirma
-        entregada. Solo se acepta tarjeta.
+        Se paga con tarjeta de crédito o débito — no se acepta el saldo de
+        tu cuenta de Mercado Pago, transferencia ni efectivo. La comisión
+        de la plataforma la paga el vendedor, nunca se te suma acá. Si
+        elegís pagar en cuotas con interés, el total que te cobre tu
+        tarjeta va a ser mayor al precio publicado — eso es financiación
+        del banco, no algo que cobremos nosotros ni Mercado Pago.
+      </p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+        El pago se retiene y solo se libera al vendedor cuando la entrada
+        se confirma entregada.
       </p>
 
       <div className="mt-6">

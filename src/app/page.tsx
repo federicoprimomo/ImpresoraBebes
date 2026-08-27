@@ -414,8 +414,10 @@ export default async function Home() {
           </h2>
           <p className="mt-4 text-center text-zinc-600 dark:text-zinc-400">
             Es del 10% sobre el precio de venta, y la paga el vendedor — el
-            comprador paga exactamente el precio publicado, sin nada
-            sumado. Por ejemplo, para una entrada de{" "}
+            comprador paga exactamente el precio publicado (pagando con
+            tarjeta en un pago; en cuotas con interés, la tarjeta puede
+            cobrar un poco más, pero eso es financiación del banco, no
+            nuestro). Por ejemplo, para una entrada de{" "}
             {formatArsCents(example.priceArs)}:
           </p>
 

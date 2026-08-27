@@ -130,8 +130,11 @@ export default async function ListingDetailPage({
               </div>
             </dl>
             <p className="mt-2 text-xs text-zinc-500">
-              Pagás exactamente el precio publicado — la comisión de la plataforma
-              la paga el vendedor.
+              Pagás con tarjeta de crédito o débito (no se acepta saldo de
+              tu cuenta de Mercado Pago) — la comisión de la plataforma la
+              paga el vendedor, no se te suma. Si elegís cuotas con
+              interés, tu tarjeta puede cobrarte un total mayor a este
+              precio; eso es financiación del banco, no nuestro.
             </p>
           </>
         )}

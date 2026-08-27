@@ -32,7 +32,7 @@ Para operar hace falta iniciar sesión con una cuenta de Google. Para vender, ad
 
 # Comisión
 
-Escrow.ar cobra una comisión del 10% sobre el precio de venta, a cargo del vendedor. El comprador paga exactamente el precio publicado, sin nada sumado. La comisión se factura electrónicamente ante ARCA.
+Escrow.ar cobra una comisión del 10% sobre el precio de venta, a cargo del vendedor. El comprador paga exactamente el precio publicado, sin nada sumado — el pago se hace con tarjeta de crédito o débito, en un pago; no se acepta el saldo de la cuenta de Mercado Pago, transferencia ni efectivo. Si el comprador elige pagar en cuotas con interés, la tarjeta puede cobrarle un total mayor al precio publicado: eso es financiación del banco emisor, no una comisión de Escrow.ar ni de Mercado Pago. La comisión se factura electrónicamente ante ARCA.
 
 Aparte de esa comisión, Mercado Pago cobra su propio costo por procesar el cobro con tarjeta — varía según la cuenta del vendedor y el plazo de acreditación elegido, y no lo fija Escrow.ar. Ese costo también se descuenta de lo que recibe el vendedor. El monto exacto se confirma recién cuando el pago se libera; hasta ese momento, cualquier estimación mostrada en la plataforma es aproximada.
 
@@ -105,9 +105,14 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
       "No. La tarjeta se tokeniza directo en tu navegador contra Mercado Pago (nunca toca nuestros servidores), y el dinero se mueve entre tu tarjeta y la cuenta de Mercado Pago del vendedor. Nosotros solo indicamos cuándo liberar ese pago ya autorizado.",
   },
   {
-    question: "¿Por qué no acepta transferencia o efectivo?",
+    question: "¿Por qué no acepta transferencia, dinero en cuenta ni efectivo?",
     answer:
-      'Porque la retención del pago (autorizar sin capturar) es una función específica de los pagos con tarjeta. Una transferencia se acredita en el momento y no se puede "retener" de la misma forma, así que perdería el sentido del escrow.',
+      'Porque la retención del pago (autorizar sin capturar) es una función específica de los pagos con tarjeta de crédito o débito. Una transferencia, un pago con el saldo de tu cuenta de Mercado Pago o un pago en efectivo se acreditan en el momento y no se pueden "retener" de la misma forma, así que perdería el sentido del escrow. Solo se acepta tarjeta.',
+  },
+  {
+    question: "Si pago en cuotas, ¿pago más que el precio publicado?",
+    answer:
+      "Depende de la cuota que elijas. En un pago, o en cuotas sin interés, pagás exactamente el precio publicado. Si elegís cuotas con interés, tu tarjeta te va a cobrar un total mayor — eso lo cobra el banco emisor por financiarte la compra, no es una comisión de Escrow.ar ni de Mercado Pago, y nosotros no vemos nada de eso.",
   },
   {
     question: "¿Cuánto tarda en liberarse el pago al vendedor?",

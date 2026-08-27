@@ -29,6 +29,10 @@ const OBSOLETE_FAQ_QUESTIONS = [
   // Del modelo de comisión dividida (reemplazado por 10% único a cargo
   // del vendedor) — ver commit "Comisión única del 10%...".
   "¿La comisión es la misma para el comprador y el vendedor?",
+  // Reemplazada por una versión que también aclara "dinero en cuenta" de
+  // Mercado Pago y que solo se acepta tarjeta — ver commit "Aclarar forma
+  // de pago y cuotas con interés".
+  "¿Por qué no acepta transferencia o efectivo?",
 ];
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL;
