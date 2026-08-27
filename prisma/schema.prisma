@@ -129,12 +129,36 @@ enum ListingStatus {
 
 model Listing {
   id          String        @id @default(cuid())
-  title       String
+  title       String // nombre del evento
+  artistName  String? // artista/banda (opcional)
   description String?
   eventDate   DateTime?
   priceArs    Int // precio base en ARS, en centavos para evitar floats
   quantity    Int           @default(1)
   status      ListingStatus @default(ACTIVE)
+
+  // Plataforma que va a hacer el envío real de la entrada (Ticketek,
+  // AllAccess, etc.) — puramente informativo, la entrega en sí siempre pasa
+  // por la plataforma vía DeliveryFile, esto es solo para que el comprador
+  // sepa de dónde sale el archivo/código original.
+  platform String?
+
+  // Ubicación del evento, para filtrar. Provincia es una lista fija (ver
+  // enum Provincia); localidad queda a texto libre porque una base
+  // completa de localidades de Argentina son miles de filas — el filtro de
+  // /listings arma sus opciones a partir de los valores ya usados en
+  // publicaciones reales, no hace falta precargar nada.
+  provincia Provincia?
+  localidad String?
+
+  genreId    String?
+  genre      Genre?    @relation(fields: [genreId], references: [id])
+  subgenreId String?
+  subgenre   Subgenre? @relation(fields: [subgenreId], references: [id])
+
+  // Foto del evento (no la entrada en sí — eso es DeliveryFile, privado).
+  photoStorageKey  String?
+  photoContentType String?
 
   sellerId String
   seller   User   @relation("SellerListings", fields: [sellerId], references: [id])
@@ -143,6 +167,67 @@ model Listing {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+
+  @@index([provincia])
+  @@index([genreId])
+  @@index([eventDate])
+}
+
+// Lista fija — no hace falta administrarla desde el admin, no cambia.
+enum Provincia {
+  CABA
+  BUENOS_AIRES
+  CATAMARCA
+  CHACO
+  CHUBUT
+  CORDOBA
+  CORRIENTES
+  ENTRE_RIOS
+  FORMOSA
+  JUJUY
+  LA_PAMPA
+  LA_RIOJA
+  MENDOZA
+  MISIONES
+  NEUQUEN
+  RIO_NEGRO
+  SALTA
+  SAN_JUAN
+  SAN_LUIS
+  SANTA_CRUZ
+  SANTA_FE
+  SANTIAGO_DEL_ESTERO
+  TIERRA_DEL_FUEGO
+  TUCUMAN
+}
+
+// Géneros/subgéneros de evento (musical, deportivo, etc.), administrables
+// desde /admin/categories — a diferencia de Provincia, esta sí es una lista
+// chica que tiene sentido que el admin pueda ajustar con el tiempo.
+model Genre {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  order     Int        @default(0)
+  subgenres Subgenre[]
+  listings  Listing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subgenre {
+  id      String @id @default(cuid())
+  name    String
+  order   Int    @default(0)
+  genreId String
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  listings Listing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([genreId, name])
 }
 
 // Ciclo de vida completo de una compra con retención de pago (escrow),
