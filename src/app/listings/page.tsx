@@ -9,6 +9,7 @@ import { isPublicBrowsingEnabled } from "@/lib/site-content";
 import { PROVINCIA_LABELS, PROVINCIA_OPTIONS } from "@/lib/argentina";
 import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
 import { getGenresWithSubgenres } from "@/lib/genres";
+import { notPastEventWhere } from "@/lib/listing";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 
 export const dynamic = "force-dynamic";
@@ -115,19 +116,39 @@ export default async function ListingsPage({
   // tildada), se ignora en vez de dejar un filtro fantasma.
   const effectiveLocalidad = localidadOptions.includes(localidad) ? localidad : "";
 
-  const where: Prisma.ListingWhereInput = { status: "ACTIVE", isPublic: true };
+  // Se arma como lista de condiciones en AND (en vez de escribir cada una
+  // directo en `where`) porque tanto la búsqueda de texto como el filtro
+  // de "no pasado" de más abajo necesitan su propio OR — un segundo OR
+  // escrito directo en `where` pisaría al primero en vez de combinarse.
+  const andConditions: Prisma.ListingWhereInput[] = [];
   if (q) {
-    where.OR = [
-      { title: { contains: q, mode: "insensitive" } },
-      { artistName: { contains: q, mode: "insensitive" } },
-    ];
+    andConditions.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { artistName: { contains: q, mode: "insensitive" } },
+      ],
+    });
   }
-  if (provincia) where.provincia = provincia as Provincia;
-  if (effectiveLocalidad) where.localidad = effectiveLocalidad;
-  if (genreId) where.genreId = genreId;
-  if (effectiveSubgenreId) where.subgenreId = effectiveSubgenreId;
+  if (provincia) andConditions.push({ provincia: provincia as Provincia });
+  if (effectiveLocalidad) andConditions.push({ localidad: effectiveLocalidad });
+  if (genreId) andConditions.push({ genreId });
+  if (effectiveSubgenreId) andConditions.push({ subgenreId: effectiveSubgenreId });
+
   const range = fechaRange(fecha);
-  if (range) where.eventDate = range;
+  if (range) {
+    andConditions.push({ eventDate: range });
+  } else {
+    // Sin un filtro de fecha puntual, igual no tiene sentido seguir
+    // ofreciendo una entrada para un evento que ya pasó — pero sí las que
+    // todavía no tienen fecha cargada ("a confirmar").
+    andConditions.push(notPastEventWhere());
+  }
+
+  const where: Prisma.ListingWhereInput = {
+    status: "ACTIVE",
+    isPublic: true,
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
 
   const orderBy: Prisma.ListingOrderByWithRelationInput[] =
     orden === "precio_asc"

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { PROVINCIA_LABELS } from "@/lib/argentina";
+import { isEventPast } from "@/lib/listing";
 import { ShareButtons } from "@/components/share-buttons";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,8 @@ export default async function ListingDetailPage({
   const fees = calculateOrderFees(listing.priceArs);
   const isOwnListing = session?.user?.id === listing.sellerId;
   const sellerConnected = listing.seller.connectedAccount?.status === "CONNECTED";
-  const canBuy = listing.status === "ACTIVE" && !isOwnListing && sellerConnected;
+  const eventPast = isEventPast(listing.eventDate);
+  const canBuy = listing.status === "ACTIVE" && !isOwnListing && sellerConnected && !eventPast;
 
   const metaItems = [
     listing.artistName ? `Artista: ${listing.artistName}` : null,
@@ -71,6 +73,11 @@ export default async function ListingDetailPage({
         {!listing.isPublic ? (
           <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
             Privada
+          </span>
+        ) : null}
+        {eventPast ? (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            Evento finalizado
           </span>
         ) : null}
       </div>
@@ -129,6 +136,10 @@ export default async function ListingDetailPage({
           <p className="mt-4 text-sm text-amber-700 dark:text-amber-400">
             El vendedor todavía no conectó su cuenta de Mercado Pago, así que
             esta entrada no se puede comprar por ahora.
+          </p>
+        ) : eventPast ? (
+          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+            La fecha de este evento ya pasó — no se puede comprar.
           </p>
         ) : null}
 

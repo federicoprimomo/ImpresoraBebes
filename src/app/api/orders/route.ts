@@ -6,6 +6,7 @@ import { MercadoPagoError } from "mercadopago";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateOrderFees, centsToMpAmount } from "@/lib/fees";
+import { isEventPast } from "@/lib/listing";
 import {
   getSellerAccessToken,
   SellerNotConnectedError,
@@ -65,6 +66,12 @@ export async function POST(request: NextRequest) {
   if (listing.status !== "ACTIVE") {
     return NextResponse.json(
       { error: "Esta entrada ya no está disponible." },
+      { status: 409 },
+    );
+  }
+  if (isEventPast(listing.eventDate)) {
+    return NextResponse.json(
+      { error: "La fecha de este evento ya pasó — no se puede comprar." },
       { status: 409 },
     );
   }

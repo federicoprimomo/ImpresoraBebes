@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents } from "@/lib/format";
+import { isEventPast } from "@/lib/listing";
 import { CardCheckoutForm } from "@/components/card-checkout-form";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,9 @@ export default async function CheckoutPage({
     redirect(`/listings/${id}`);
   }
   if (listing.seller.connectedAccount?.status !== "CONNECTED") {
+    redirect(`/listings/${id}`);
+  }
+  if (isEventPast(listing.eventDate)) {
     redirect(`/listings/${id}`);
   }
 
