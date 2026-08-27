@@ -8,14 +8,14 @@ describe("calculateOrderFees", () => {
     delete process.env.PLATFORM_FEE_SELLER_PCT;
   });
 
-  it("usa 4%/4% por default cuando no hay env vars", () => {
+  it("usa 0%/10% por default cuando no hay env vars (comisión única a cargo del vendedor)", () => {
     const fees = calculateOrderFees(1500000); // $15.000 en centavos
 
-    expect(fees.buyerFeeArs).toBe(60000); // 4% de 1.500.000
-    expect(fees.sellerFeeArs).toBe(60000);
-    expect(fees.amountArs).toBe(1560000); // precio + comisión comprador
-    expect(fees.sellerPayoutArs).toBe(1440000); // precio - comisión vendedor
-    expect(fees.applicationFeeArs).toBe(120000); // suma de ambas comisiones
+    expect(fees.buyerFeeArs).toBe(0);
+    expect(fees.sellerFeeArs).toBe(150000); // 10% de 1.500.000
+    expect(fees.amountArs).toBe(1500000); // el comprador paga el precio tal cual
+    expect(fees.sellerPayoutArs).toBe(1350000); // precio - comisión vendedor
+    expect(fees.applicationFeeArs).toBe(150000); // suma de ambas comisiones
   });
 
   it("la comisión total siempre es lo que paga el comprador de más, menos lo que recibe el vendedor de menos", () => {

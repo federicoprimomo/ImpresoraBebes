@@ -1,6 +1,10 @@
 /**
- * Cálculo de la comisión de la plataforma, dividida entre comprador y
- * vendedor (ver PLATFORM_FEE_BUYER_PCT / PLATFORM_FEE_SELLER_PCT).
+ * Cálculo de la comisión de la plataforma. Por default es una comisión
+ * única del 10% sobre el precio, a cargo del vendedor — el comprador paga
+ * exactamente el precio publicado, sin nada sumado. `buyerFeeArs` y
+ * `PLATFORM_FEE_BUYER_PCT` siguen existiendo por si en algún momento hace
+ * falta volver a repartirla, pero el comportamiento por default es 0%
+ * comprador / 10% vendedor.
  *
  * Todos los montos están en centavos de ARS (enteros) para evitar errores
  * de punto flotante. `application_fee` de Mercado Pago es lo que la
@@ -34,8 +38,8 @@ function getFeePct(envVar: string, fallback: number): number {
 }
 
 export function calculateOrderFees(priceArs: number): OrderFees {
-  const buyerFeePct = getFeePct("PLATFORM_FEE_BUYER_PCT", 0.04);
-  const sellerFeePct = getFeePct("PLATFORM_FEE_SELLER_PCT", 0.04);
+  const buyerFeePct = getFeePct("PLATFORM_FEE_BUYER_PCT", 0);
+  const sellerFeePct = getFeePct("PLATFORM_FEE_SELLER_PCT", 0.1);
 
   const buyerFeeArs = Math.round(priceArs * buyerFeePct);
   const sellerFeeArs = Math.round(priceArs * sellerFeePct);

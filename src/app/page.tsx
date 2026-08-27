@@ -363,35 +363,25 @@ export default async function Home() {
             La comisión, sin letra chica
           </h2>
           <p className="mt-4 text-center text-zinc-600 dark:text-zinc-400">
-            Se reparte entre las dos partes, y se ve desglosada antes de
-            pagar. Por ejemplo, para una entrada de {formatArsCents(example.priceArs)}:
+            Es del 10% sobre el precio de venta, y la paga el vendedor — el
+            comprador paga exactamente el precio publicado, sin nada
+            sumado. Por ejemplo, para una entrada de{" "}
+            {formatArsCents(example.priceArs)}:
           </p>
 
           <div className="mt-8 overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
-            <div className="flex flex-col gap-3 p-6 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  Precio publicado por el vendedor
-                </span>
-                <span className="font-medium">{formatArsCents(example.priceArs)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  + comisión que suma el comprador
-                </span>
-                <span className="font-medium">{formatArsCents(example.buyerFeeArs)}</span>
-              </div>
-            </div>
             <div className="flex items-center justify-between bg-brand-muted px-6 py-3 text-sm font-semibold text-brand-muted-foreground">
-              <span>Total que paga el comprador</span>
-              <span>{formatArsCents(example.amountArs)}</span>
+              <span>Precio — lo que paga el comprador</span>
+              <span>{formatArsCents(example.priceArs)}</span>
             </div>
             <div className="flex flex-col gap-3 p-6 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-600 dark:text-zinc-400">
-                  − comisión que descuenta el vendedor
+                  − comisión de Escrow.ar (10%)
                 </span>
-                <span className="font-medium">{formatArsCents(example.sellerFeeArs)}</span>
+                <span className="font-medium">
+                  {formatArsCents(example.applicationFeeArs)}
+                </span>
               </div>
             </div>
             <div className="flex items-center justify-between bg-brand-muted px-6 py-3 text-sm font-semibold text-brand-muted-foreground">
@@ -400,9 +390,7 @@ export default async function Home() {
             </div>
           </div>
           <p className="mt-4 text-center text-xs text-zinc-500">
-            En total, Escrow.ar se queda con{" "}
-            {formatArsCents(example.applicationFeeArs)} de comisión sobre
-            esta venta — facturados electrónicamente en ARCA.
+            Esa comisión se factura electrónicamente en ARCA.
           </p>
         </div>
       </section>

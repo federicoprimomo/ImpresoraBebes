@@ -32,7 +32,7 @@ Para operar hace falta iniciar sesión con una cuenta de Google. Para vender, ad
 
 # Comisión
 
-Escrow.ar cobra una comisión sobre cada operación, dividida entre comprador y vendedor. El desglose se muestra antes de confirmar el pago. La comisión se factura electrónicamente ante ARCA.
+Escrow.ar cobra una comisión del 10% sobre el precio de venta, a cargo del vendedor. El comprador paga exactamente el precio publicado, sin nada sumado. La comisión se factura electrónicamente ante ARCA.
 
 # Entrega y reclamos
 
@@ -106,9 +106,9 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
       "Apenas se confirma la entrega, o automáticamente al vencer la ventana de reclamo si el comprador no dijo nada. Mercado Pago pone un límite máximo de 7 días desde el pago para capturarlo — pasado ese plazo sin resolverse, la operación se cae y nadie cobra.",
   },
   {
-    question: "¿La comisión es la misma para el comprador y el vendedor?",
+    question: "¿Quién paga la comisión, el comprador o el vendedor?",
     answer:
-      "La comisión se reparte entre las dos partes: una parte se suma al precio que paga el comprador, y la otra se descuenta de lo que cobra el vendedor. Se ve desglosado antes de pagar, sin letra chica.",
+      "La paga el vendedor: es un 10% sobre el precio de venta, que se descuenta al liberarse el pago. El comprador paga exactamente el precio publicado, sin nada sumado — sin letra chica.",
   },
   {
     question: "¿Esto es legal?",

@@ -48,23 +48,17 @@ export default async function CheckoutPage({
       </p>
 
       <div className="mt-4 rounded-lg bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">
-        <div className="flex justify-between">
-          <span>Precio</span>
-          <span>{formatArsCents(fees.priceArs)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Comisión de la plataforma</span>
-          <span>{formatArsCents(fees.buyerFeeArs)}</span>
-        </div>
-        <div className="mt-1 flex justify-between border-t border-black/10 pt-1 font-semibold dark:border-white/10">
-          <span>Total</span>
+        <div className="flex justify-between font-semibold">
+          <span>Total a pagar</span>
           <span>{formatArsCents(fees.amountArs)}</span>
         </div>
       </div>
 
       <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-500">
-        Este pago se retiene y solo se libera al vendedor cuando la entrada
-        se confirma entregada. Solo se acepta tarjeta.
+        Pagás exactamente el precio publicado, sin nada sumado — la
+        comisión de la plataforma la paga el vendedor. Este pago se retiene
+        y solo se libera al vendedor cuando la entrada se confirma
+        entregada. Solo se acepta tarjeta.
       </p>
 
       <div className="mt-6">
