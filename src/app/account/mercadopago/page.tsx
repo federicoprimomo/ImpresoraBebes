@@ -88,7 +88,7 @@ export default async function MercadoPagoAccountPage({
         ) : (
           <a
             href="/api/connected-accounts/oauth/start"
-            className="mt-4 flex h-11 w-full items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+            className="mt-4 flex h-11 w-full items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
           >
             Conectar con Mercado Pago
           </a>

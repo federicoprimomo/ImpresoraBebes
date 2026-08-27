@@ -229,7 +229,7 @@ export function CardCheckoutForm({
         id="form-checkout__submit"
         type="submit"
         disabled={status === "loading-sdk" || status === "submitting" || status === "error"}
-        className="mt-2 flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+        className="mt-2 flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
       >
         {status === "submitting"
           ? "Procesando..."

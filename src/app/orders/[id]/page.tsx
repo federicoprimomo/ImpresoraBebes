@@ -185,7 +185,7 @@ export default async function OrderDetailPage({
             />
             <button
               type="submit"
-              className="flex h-10 shrink-0 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+              className="flex h-10 shrink-0 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
             >
               {order.delivery ? "Reemplazar" : "Subir"}
             </button>
@@ -213,7 +213,7 @@ export default async function OrderDetailPage({
           </p>
           <a
             href={`/api/orders/${order.id}/download`}
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
           >
             Descargar entrada
           </a>

@@ -92,14 +92,14 @@ export default async function ListingDetailPage({
           session?.user ? (
             <Link
               href={`/listings/${listing.id}/checkout`}
-              className="mt-4 flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+              className="mt-4 flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
             >
               Comprar con tarjeta
             </Link>
           ) : (
             <Link
               href="/login"
-              className="mt-4 flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+              className="mt-4 flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
             >
               Ingresá para comprar
             </Link>

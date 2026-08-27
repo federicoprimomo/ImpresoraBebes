@@ -44,7 +44,7 @@ export function AdminDisputeResolution({ orderId }: { orderId: string }) {
           type="button"
           onClick={() => resolve("RELEASE")}
           disabled={status === "loading"}
-          className="flex h-10 flex-1 items-center justify-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+          className="flex h-10 flex-1 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
         >
           Liberar pago al vendedor
         </button>

@@ -28,7 +28,7 @@ export default async function LoginPage() {
         >
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
           >
             Continuar con Google
           </button>
