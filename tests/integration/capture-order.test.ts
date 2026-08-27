@@ -15,6 +15,7 @@ vi.mock("@/lib/connected-account", () => ({
 
 vi.mock("@/lib/mercadopago", () => ({
   capturePayment: vi.fn().mockResolvedValue({ status: "approved", captured: true, id: 999 }),
+  extractSettlementInfo: vi.fn().mockReturnValue({ mpFeeArs: null, netReceivedArs: null }),
 }));
 
 describe("captureOrder — condición de carrera de idempotencyKeyCapture", () => {

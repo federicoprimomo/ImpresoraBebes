@@ -109,7 +109,7 @@ export default async function AdminPage() {
     publicBrowsingEnabled,
   ] = await Promise.all([
     prisma.commissionLedgerEntry.aggregate({
-      _sum: { totalFeeArs: true, buyerFeeArs: true, sellerFeeArs: true },
+      _sum: { totalFeeArs: true, buyerFeeArs: true, sellerFeeArs: true, mpFeeArs: true },
       _count: true,
     }),
     prisma.order.aggregate({
@@ -266,6 +266,11 @@ export default async function AdminPage() {
         <StatCard
           label="Reclamos abiertos"
           value={String(openDisputes.length)}
+        />
+        <StatCard
+          label="Costo de Mercado Pago"
+          value={formatArsCents(commissionAgg._sum.mpFeeArs ?? 0)}
+          hint="Informativo — lo paga cada vendedor, no es ingreso nuestro"
         />
       </div>
 

@@ -241,7 +241,7 @@ export default async function Home() {
 
               <div className="mt-5 flex flex-col gap-2 border-t border-black/10 pt-4 text-sm dark:border-white/10">
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Recibe el vendedor</span>
+                  <span className="text-zinc-500">Recibe el vendedor (aprox.)</span>
                   <span className="font-medium text-zinc-950 dark:text-zinc-50">
                     {formatArsCents(example.sellerPayoutArs)}
                   </span>
@@ -257,6 +257,9 @@ export default async function Home() {
               <p className="mt-5 flex items-center gap-1.5 text-xs text-zinc-500">
                 <LockIcon className="h-3.5 w-3.5" />
                 Se libera solo al confirmarse la entrega
+              </p>
+              <p className="mt-1.5 text-xs text-zinc-500">
+                No incluye el costo de Mercado Pago por procesar el cobro.
               </p>
             </div>
           </div>
@@ -429,14 +432,25 @@ export default async function Home() {
                   {formatArsCents(example.applicationFeeArs)}
                 </span>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  − costo de Mercado Pago por cobrar con tarjeta
+                </span>
+                <span className="font-medium">variable</span>
+              </div>
             </div>
             <div className="flex items-center justify-between bg-brand-muted px-6 py-3 text-sm font-semibold text-brand-muted-foreground">
-              <span>Recibe el vendedor</span>
+              <span>Recibe el vendedor (aprox.)</span>
               <span>{formatArsCents(example.sellerPayoutArs)}</span>
             </div>
           </div>
           <p className="mt-4 text-center text-xs text-zinc-500">
-            Esa comisión se factura electrónicamente en ARCA.
+            Esa comisión se factura electrónicamente en ARCA. Aparte, Mercado
+            Pago cobra su propio costo por procesar el pago con tarjeta —
+            varía según la cuenta del vendedor y el plazo de acreditación
+            elegido — y también se descuenta de lo que recibe el vendedor. El
+            monto exacto que va a cobrar se confirma cuando se libera el
+            pago.
           </p>
         </div>
       </section>

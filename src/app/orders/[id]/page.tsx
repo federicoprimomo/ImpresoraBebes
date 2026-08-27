@@ -153,17 +153,37 @@ export default async function OrderDetailPage({
           </div>
           <div className="flex justify-between">
             <dt className="text-zinc-600 dark:text-zinc-400">
-              Comisión de la plataforma
+              Comisión de Escrow.ar
             </dt>
             <dd>{formatArsCents(order.buyerFeeArs + order.sellerFeeArs)}</dd>
           </div>
+          {order.status === "RELEASED" && order.mpFeeArs !== null ? (
+            <div className="flex justify-between">
+              <dt className="text-zinc-600 dark:text-zinc-400">
+                Costo de Mercado Pago
+              </dt>
+              <dd>{formatArsCents(order.mpFeeArs)}</dd>
+            </div>
+          ) : null}
           {order.sellerPayoutArs !== null ? (
             <div className="flex justify-between font-semibold">
-              <dt>Recibe el vendedor</dt>
+              <dt>
+                Recibe el vendedor
+                {order.status !== "RELEASED" ? (
+                  <span className="ml-1 font-normal text-zinc-500">(estimado)</span>
+                ) : null}
+              </dt>
               <dd>{formatArsCents(order.sellerPayoutArs)}</dd>
             </div>
           ) : null}
         </dl>
+        {order.status !== "RELEASED" ? (
+          <p className="mt-3 text-xs text-zinc-500">
+            El monto estimado todavía no descuenta el costo propio de Mercado
+            Pago por procesar el cobro (variable, aparte de nuestra comisión).
+            El neto exacto se confirma al liberarse el pago.
+          </p>
+        ) : null}
       </div>
 
       {canUploadDelivery ? (

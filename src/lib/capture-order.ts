@@ -4,7 +4,7 @@ import type { Order } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getSellerAccessToken } from "@/lib/connected-account";
-import { capturePayment } from "@/lib/mercadopago";
+import { capturePayment, extractSettlementInfo, type SettlementInfo } from "@/lib/mercadopago";
 import { getArcaConfig } from "@/lib/arca/config";
 import { issueCommissionInvoice } from "@/lib/arca/invoice";
 import { notifyOrderEvent } from "@/lib/email";
@@ -24,11 +24,27 @@ const CAPTURABLE_STATUSES = ["PAYMENT_HELD", "DELIVERED", "DISPUTED"] as const;
  * estado que no vimos en el momento (ej. el server se cayó justo después de
  * capturar). Es idempotente — `upsert` en el ledger evita duplicarlo.
  */
-export async function finalizeReleasedOrder(order: Order, releasedAt = new Date()) {
+export async function finalizeReleasedOrder(
+  order: Order,
+  releasedAt = new Date(),
+  settlement?: SettlementInfo,
+) {
   await prisma.$transaction([
     prisma.order.update({
       where: { id: order.id },
-      data: { status: "RELEASED", releasedAt, lastPaymentError: null },
+      data: {
+        status: "RELEASED",
+        releasedAt,
+        lastPaymentError: null,
+        // sellerPayoutArs venía seteado como estimación desde que se creó
+        // la orden (precio - nuestra comisión, sin el costo de Mercado
+        // Pago). Acá lo pisamos con el neto real si Mercado Pago lo
+        // informó — si no, se queda la estimación en vez de perder el dato.
+        ...(settlement?.netReceivedArs != null
+          ? { sellerPayoutArs: settlement.netReceivedArs }
+          : {}),
+        ...(settlement?.mpFeeArs != null ? { mpFeeArs: settlement.mpFeeArs } : {}),
+      },
     }),
     prisma.listing.update({
       where: { id: order.listingId },
@@ -41,8 +57,9 @@ export async function finalizeReleasedOrder(order: Order, releasedAt = new Date(
         buyerFeeArs: order.buyerFeeArs,
         sellerFeeArs: order.sellerFeeArs,
         totalFeeArs: order.buyerFeeArs + order.sellerFeeArs,
+        mpFeeArs: settlement?.mpFeeArs ?? null,
       },
-      update: {},
+      update: settlement?.mpFeeArs != null ? { mpFeeArs: settlement.mpFeeArs } : {},
     }),
   ]);
 
@@ -159,7 +176,7 @@ export async function captureOrder(orderId: string) {
     }
 
     const releasedAt = new Date();
-    await finalizeReleasedOrder(order, releasedAt);
+    await finalizeReleasedOrder(order, releasedAt, extractSettlementInfo(payment));
 
     return { ...order, status: "RELEASED" as const, releasedAt };
   } catch (error) {

@@ -12,6 +12,7 @@ vi.mock("@/lib/connected-account", () => ({
 vi.mock("@/lib/mercadopago", () => ({
   capturePayment: vi.fn().mockResolvedValue({ status: "approved", captured: true, id: 999 }),
   cancelPayment: vi.fn().mockResolvedValue({ status: "cancelled" }),
+  extractSettlementInfo: vi.fn().mockReturnValue({ mpFeeArs: null, netReceivedArs: null }),
 }));
 
 describe("openDispute", () => {

@@ -263,7 +263,16 @@ model Order {
   amountArs       Int // total cobrado al comprador (precio + comisión del comprador)
   buyerFeeArs     Int  @default(0) // comisión que paga el comprador (sumada al precio)
   sellerFeeArs    Int  @default(0) // comisión que se descuenta al vendedor al liberar
-  sellerPayoutArs Int? // monto final liquidado al vendedor (amount - buyerFee - sellerFee)
+  // Antes de RELEASED es una ESTIMACIÓN (amount - buyerFee - sellerFee) que
+  // todavía no descuenta el costo propio de Mercado Pago por procesar el
+  // cobro. Al capturar/liberar se sobreescribe con el neto real que informa
+  // Mercado Pago (transaction_details.net_received_amount) si está
+  // disponible — ver extractSettlementInfo() en lib/mercadopago.ts.
+  sellerPayoutArs Int?
+  // Costo que cobró Mercado Pago por procesar este pago (fee_details:
+  // "mercadopago_fee"), a cargo del vendedor y aparte de nuestra comisión.
+  // Solo se conoce después de capturar — null hasta entonces.
+  mpFeeArs        Int?
 
   // Datos del comprador enviados a Mercado Pago (snapshot al momento de pagar).
   payerEmail     String
@@ -365,6 +374,10 @@ model CommissionLedgerEntry {
   buyerFeeArs  Int
   sellerFeeArs Int
   totalFeeArs  Int
+  // Costo de Mercado Pago en esta operación — informativo, no es ingreso
+  // nuestro. Null si la orden se liberó antes de que existiera este campo,
+  // o si Mercado Pago no informó el dato en esa captura puntual.
+  mpFeeArs     Int?
 
   createdAt DateTime @default(now())
 }

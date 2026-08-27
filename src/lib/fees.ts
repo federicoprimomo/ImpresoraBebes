@@ -16,6 +16,17 @@
  *   sellerPayoutArs (lo que recibe el vendedor) = precio - sellerFeeArs
  *   applicationFeeArs (lo que retiene la plataforma) = amountArs - sellerPayoutArs
  *                                                     = buyerFeeArs + sellerFeeArs
+ *
+ * IMPORTANTE — esto NO incluye el costo propio de Mercado Pago por procesar
+ * el cobro con tarjeta (su comisión de cobro, variable según cuenta y
+ * plazo de acreditación elegido). Como el pago se crea con el access_token
+ * del vendedor (modelo Marketplace), ese costo lo termina pagando el
+ * vendedor, aparte de sellerFeeArs — nosotros solo nos quedamos con
+ * applicationFeeArs. `sellerPayoutArs` calculado acá es una ESTIMACIÓN
+ * previa a la captura; el neto real (ya descontado el costo de Mercado
+ * Pago) se conoce recién cuando se libera el pago y queda guardado en
+ * `Order.sellerPayoutArs`/`Order.mpFeeArs` — ver extractSettlementInfo()
+ * en lib/mercadopago.ts.
  */
 
 export type OrderFees = {

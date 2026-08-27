@@ -1,5 +1,6 @@
 import { MercadoPagoConfig, OAuth, Payment } from "mercadopago";
 import type { PaymentCreateRequest } from "mercadopago/dist/clients/payment/create/types";
+import type { PaymentResponse } from "mercadopago/dist/clients/payment/commonTypes";
 
 /**
  * Wrapper fino sobre el SDK oficial de Mercado Pago para el modelo
@@ -199,4 +200,32 @@ export async function getPayment(input: {
 }) {
   const payment = new Payment(sellerConfig(input.sellerAccessToken));
   return payment.get({ id: input.mpPaymentId });
+}
+
+export type SettlementInfo = {
+  /** Lo que cobró Mercado Pago por procesar el pago — a cargo del
+   * vendedor, aparte de nuestro `application_fee`. */
+  mpFeeArs: number | null;
+  /** Lo que finalmente le queda al vendedor una vez descontados el costo
+   * de Mercado Pago y nuestra comisión — el número real, no el estimado. */
+  netReceivedArs: number | null;
+};
+
+/**
+ * `fee_details`/`transaction_details` no siempre vienen completos (depende
+ * del medio de pago y de si ya se liquidó), así que cualquiera de los dos
+ * campos puede dar `null` acá — hay que tratarlo como "todavía no lo
+ * sabemos", nunca como si el costo fuera cero.
+ */
+export function extractSettlementInfo(payment: PaymentResponse): SettlementInfo {
+  const mpFeeAmount = payment.fee_details?.find(
+    (fee) => fee.type === "mercadopago_fee",
+  )?.amount;
+  const netReceivedAmount = payment.transaction_details?.net_received_amount;
+
+  return {
+    mpFeeArs: typeof mpFeeAmount === "number" ? Math.round(mpFeeAmount * 100) : null,
+    netReceivedArs:
+      typeof netReceivedAmount === "number" ? Math.round(netReceivedAmount * 100) : null,
+  };
 }

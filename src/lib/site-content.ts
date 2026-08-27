@@ -34,6 +34,8 @@ Para operar hace falta iniciar sesión con una cuenta de Google. Para vender, ad
 
 Escrow.ar cobra una comisión del 10% sobre el precio de venta, a cargo del vendedor. El comprador paga exactamente el precio publicado, sin nada sumado. La comisión se factura electrónicamente ante ARCA.
 
+Aparte de esa comisión, Mercado Pago cobra su propio costo por procesar el cobro con tarjeta — varía según la cuenta del vendedor y el plazo de acreditación elegido, y no lo fija Escrow.ar. Ese costo también se descuenta de lo que recibe el vendedor. El monto exacto se confirma recién cuando el pago se libera; hasta ese momento, cualquier estimación mostrada en la plataforma es aproximada.
+
 # Entrega y reclamos
 
 El vendedor entrega la entrada subiéndola a la plataforma. El comprador tiene una ventana de tiempo desde la descarga para reportar un problema. Mientras el reclamo esté abierto, el pago permanece retenido. Un administrador de la plataforma revisa cada reclamo y decide si corresponde liberar el pago al vendedor o cancelar la autorización.
@@ -108,7 +110,7 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
   {
     question: "¿Quién paga la comisión, el comprador o el vendedor?",
     answer:
-      "La paga el vendedor: es un 10% sobre el precio de venta, que se descuenta al liberarse el pago. El comprador paga exactamente el precio publicado, sin nada sumado — sin letra chica.",
+      "La nuestra la paga el vendedor: es un 10% sobre el precio de venta, que se descuenta al liberarse el pago. El comprador paga exactamente el precio publicado, sin nada sumado — sin letra chica. Aparte de eso, Mercado Pago cobra su propio costo por procesar el cobro con tarjeta (variable, según la cuenta del vendedor), que también sale del lado del vendedor — el monto final exacto se confirma cuando se libera el pago.",
   },
   {
     question: "¿Esto es legal?",

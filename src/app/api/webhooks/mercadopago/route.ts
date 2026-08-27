@@ -3,7 +3,7 @@ import { InvalidWebhookSignatureError, WebhookSignatureValidator } from "mercado
 
 import { prisma } from "@/lib/prisma";
 import { getSellerAccessToken } from "@/lib/connected-account";
-import { getPayment } from "@/lib/mercadopago";
+import { getPayment, extractSettlementInfo } from "@/lib/mercadopago";
 import { finalizeReleasedOrder } from "@/lib/capture-order";
 import { captureError } from "@/lib/monitoring";
 
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       payment.captured &&
       order.status !== "RELEASED"
     ) {
-      await finalizeReleasedOrder(order);
+      await finalizeReleasedOrder(order, undefined, extractSettlementInfo(payment));
     } else if (
       (payment.status === "rejected" || payment.status === "cancelled") &&
       order.status === "PENDING_PAYMENT"
