@@ -25,14 +25,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Gris oscuro con un dejo de índigo, no negro casi puro — se sigue
+       viendo "oscuro" en un celular con dark mode, pero menos crudo. */
+    --background: #16161f;
+    --foreground: #f2f2f5;
 
     --brand: #6366f1;
     --brand-hover: #818cf8;
     --brand-foreground: #ffffff;
-    --brand-muted: #1e1b4b;
-    --brand-muted-foreground: #a5b4fc;
+    --brand-muted: #24215a;
+    --brand-muted-foreground: #c7d2fe;
   }
 }
 

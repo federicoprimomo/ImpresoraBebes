@@ -47,7 +47,7 @@ export default async function CheckoutPage({
         {listing.title}
       </p>
 
-      <div className="mt-4 rounded-lg bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">
+      <div className="mt-4 rounded-lg bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-800">
         <div className="flex justify-between font-semibold">
           <span>Total a pagar</span>
           <span>{formatArsCents(fees.amountArs)}</span>

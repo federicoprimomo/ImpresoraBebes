@@ -144,14 +144,14 @@ export default async function Home() {
   return (
     <main className="flex flex-1 flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-black/10 bg-zinc-50 px-6 py-20 dark:border-white/10 dark:bg-black">
+      <section className="relative overflow-hidden border-b border-black/10 bg-zinc-50 px-6 py-20 dark:border-white/10 dark:bg-zinc-900">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full bg-brand/20 blur-3xl dark:bg-brand/10"
         />
         <div className="relative mx-auto grid max-w-5xl gap-12 lg:grid-cols-2 lg:items-center">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-400">
               <LockIcon className="h-3.5 w-3.5 text-brand" />
               {content["hero.eyebrow"]}
             </span>
@@ -197,7 +197,7 @@ export default async function Home() {
               aria-hidden="true"
               className="absolute -inset-6 -z-10 rounded-[2rem] bg-brand/10 blur-2xl dark:bg-brand/15"
             />
-            <div className="mx-auto w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-zinc-900">
+            <div className="mx-auto w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-zinc-800">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-zinc-400">Orden #A8F3K2</span>
                 <span className="rounded-full bg-brand-muted px-2.5 py-1 text-xs font-medium text-brand-muted-foreground">
@@ -294,7 +294,7 @@ export default async function Home() {
       </section>
 
       {/* Cómo funciona — comprador / vendedor */}
-      <section className="bg-zinc-50 px-6 py-16 dark:bg-zinc-950">
+      <section className="bg-zinc-50 px-6 py-16 dark:bg-zinc-900">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
             Cómo funciona, paso a paso
@@ -396,7 +396,7 @@ export default async function Home() {
       </section>
 
       {/* Confianza */}
-      <section className="border-y border-black/10 bg-zinc-50 px-6 py-16 dark:border-white/10 dark:bg-zinc-950">
+      <section className="border-y border-black/10 bg-zinc-50 px-6 py-16 dark:border-white/10 dark:bg-zinc-900">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
             Por qué es seguro
@@ -405,7 +405,7 @@ export default async function Home() {
             {trustPoints.map((point) => (
               <div
                 key={point.title}
-                className="rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-zinc-900"
+                className="rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-zinc-800"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-muted text-brand-muted-foreground">
                   <point.icon className="h-4.5 w-4.5" />
@@ -457,7 +457,7 @@ export default async function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="border-t border-black/10 bg-zinc-50 px-6 py-16 dark:border-white/10 dark:bg-zinc-950">
+      <section className="border-t border-black/10 bg-zinc-50 px-6 py-16 dark:border-white/10 dark:bg-zinc-900">
         <div className="mx-auto max-w-2xl">
           <h2 className="text-center text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
             Preguntas frecuentes
