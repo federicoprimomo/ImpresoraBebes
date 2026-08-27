@@ -241,15 +241,19 @@ export default async function Home() {
 
               <div className="mt-5 flex flex-col gap-2 border-t border-black/10 pt-4 text-sm dark:border-white/10">
                 <div className="flex justify-between">
-                  <span className="text-zinc-500">Recibe el vendedor (aprox.)</span>
-                  <span className="font-medium text-zinc-950 dark:text-zinc-50">
-                    {formatArsCents(example.sellerPayoutArs)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-zinc-500">Comisión Escrow.ar</span>
                   <span className="font-medium text-zinc-950 dark:text-zinc-50">
                     {formatArsCents(example.applicationFeeArs)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Costo de Mercado Pago</span>
+                  <span className="font-medium text-zinc-950 dark:text-zinc-50">variable</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span className="text-zinc-950 dark:text-zinc-50">Recibe el vendedor (aprox.)</span>
+                  <span className="text-zinc-950 dark:text-zinc-50">
+                    {formatArsCents(example.sellerPayoutArs)}
                   </span>
                 </div>
               </div>
@@ -257,9 +261,6 @@ export default async function Home() {
               <p className="mt-5 flex items-center gap-1.5 text-xs text-zinc-500">
                 <LockIcon className="h-3.5 w-3.5" />
                 Se libera solo al confirmarse la entrega
-              </p>
-              <p className="mt-1.5 text-xs text-zinc-500">
-                No incluye el costo de Mercado Pago por procesar el cobro.
               </p>
             </div>
           </div>

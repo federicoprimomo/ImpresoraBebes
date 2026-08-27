@@ -5,8 +5,24 @@ import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
 import { PROVINCIA_OPTIONS, DELIVERY_PLATFORMS } from "@/lib/argentina";
 import { getGenresWithSubgenres } from "@/lib/genres";
+import { getFeePercentages, type FeePercentages } from "@/lib/fees";
+import { captureError } from "@/lib/monitoring";
 import { GenreSubgenreSelect } from "@/components/genre-subgenre-select";
+import { PriceFeeEstimate } from "@/components/price-fee-estimate";
 import type { Provincia } from "@prisma/client";
+
+// Igual que en la landing (getFeeExample): si la config de comisión está
+// mal (env var inválida), que se rompa el cálculo en vivo del form no
+// puede tirar abajo la página entera de publicar — degradamos al default.
+function getSafeFeePercentages(): FeePercentages {
+  try {
+    return getFeePercentages();
+  } catch (error) {
+    console.error("Config de comisión inválida, usando default 10% vendedor", error);
+    captureError(error);
+    return { buyerFeePct: 0, sellerFeePct: 0.1 };
+  }
+}
 
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5MB — de sobra para una foto del evento.
 const ALLOWED_PHOTO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -229,16 +245,7 @@ export default async function NewListingPage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Precio (ARS)
-          <input
-            name="price"
-            required
-            inputMode="decimal"
-            placeholder="15000"
-            className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
-          />
-        </label>
+        <PriceFeeEstimate {...getSafeFeePercentages()} />
 
         <p className="text-xs text-zinc-500">
           Por ahora cada publicación es para una sola entrada. Si tenés más

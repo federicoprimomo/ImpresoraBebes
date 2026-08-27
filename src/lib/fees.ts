@@ -48,9 +48,22 @@ function getFeePct(envVar: string, fallback: number): number {
   return pct;
 }
 
+export type FeePercentages = { buyerFeePct: number; sellerFeePct: number };
+
+/**
+ * Los porcentajes solos, sin aplicarlos a un precio — para mostrar un
+ * cálculo en vivo del lado del cliente (ej. mientras se completa el precio
+ * en /listings/new) sin tener que mandar cada tecleo al server.
+ */
+export function getFeePercentages(): FeePercentages {
+  return {
+    buyerFeePct: getFeePct("PLATFORM_FEE_BUYER_PCT", 0),
+    sellerFeePct: getFeePct("PLATFORM_FEE_SELLER_PCT", 0.1),
+  };
+}
+
 export function calculateOrderFees(priceArs: number): OrderFees {
-  const buyerFeePct = getFeePct("PLATFORM_FEE_BUYER_PCT", 0);
-  const sellerFeePct = getFeePct("PLATFORM_FEE_SELLER_PCT", 0.1);
+  const { buyerFeePct, sellerFeePct } = getFeePercentages();
 
   const buyerFeeArs = Math.round(priceArs * buyerFeePct);
   const sellerFeeArs = Math.round(priceArs * sellerFeePct);
