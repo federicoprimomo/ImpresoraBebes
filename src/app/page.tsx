@@ -15,6 +15,7 @@ import {
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents } from "@/lib/format";
 import { getFaqItems, getSiteContentMap } from "@/lib/site-content";
+import { captureError } from "@/lib/monitoring";
 
 const buyerSteps = [
   {
@@ -111,6 +112,7 @@ function getFeeExample() {
     return calculateOrderFees(1500000); // ejemplo: entrada de $15.000
   } catch (error) {
     console.error("Config de comisión inválida, usando ejemplo de respaldo", error);
+    captureError(error);
     return {
       priceArs: 1500000,
       buyerFeeArs: 60000,

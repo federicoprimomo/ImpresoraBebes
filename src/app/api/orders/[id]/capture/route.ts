@@ -6,6 +6,7 @@ import {
   OrderExpiredError,
   OrderNotCapturableError,
 } from "@/lib/capture-order";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Captura manual, para uso de un admin (ej. resolver una disputa a favor
@@ -34,6 +35,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 410 });
     }
     console.error("Error en captura manual", error);
+    captureError(error, { orderId: id });
     return NextResponse.json(
       { error: "No pudimos capturar el pago." },
       { status: 502 },

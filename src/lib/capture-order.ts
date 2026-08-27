@@ -8,6 +8,7 @@ import { capturePayment } from "@/lib/mercadopago";
 import { getArcaConfig } from "@/lib/arca/config";
 import { issueCommissionInvoice } from "@/lib/arca/invoice";
 import { notifyOrderEvent } from "@/lib/email";
+import { captureError } from "@/lib/monitoring";
 
 export class OrderNotCapturableError extends Error {}
 export class OrderExpiredError extends Error {}
@@ -53,6 +54,7 @@ export async function finalizeReleasedOrder(order: Order, releasedAt = new Date(
   if (config?.autoInvoiceOnRelease) {
     await issueCommissionInvoice(order).catch((error) => {
       console.error(`Error facturando automáticamente la orden ${order.id}`, error);
+      captureError(error, { orderId: order.id });
     });
   }
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { captureOrder } from "@/lib/capture-order";
 import { notifyOrderEvent } from "@/lib/email";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Worker de liberación automática. Pensado para correr como cron (ej.
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
         id,
         error: error instanceof Error ? error.message : String(error),
       });
+      captureError(error, { orderId: id });
     }
   }
 

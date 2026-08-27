@@ -5,6 +5,7 @@ import { getArcaConfig } from "@/lib/arca/config";
 import { getAuthTicket } from "@/lib/arca/wsaa";
 import { getLastInvoiceNumber, requestCae } from "@/lib/arca/wsfe";
 import { centsToMpAmount } from "@/lib/fees";
+import { captureError } from "@/lib/monitoring";
 
 const DOC_TIPO_CUIT = 80;
 const DOC_TIPO_DNI = 96;
@@ -132,6 +133,7 @@ export async function issueCommissionInvoice(order: Order) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido facturando en ARCA.";
     console.error(`Error emitiendo factura ARCA para la orden ${order.id}`, error);
+    captureError(error, { orderId: order.id });
     return prisma.invoice.update({
       where: { id: invoice.id },
       data: { status: "FAILED", errorMessage: message },

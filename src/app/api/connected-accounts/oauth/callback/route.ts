@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { saveConnectedAccount } from "@/lib/connected-account";
 import { exchangeOAuthCode } from "@/lib/mercadopago";
 import { verifyOAuthState } from "@/lib/oauth-state";
+import { captureError } from "@/lib/monitoring";
 
 function redirectTo(request: NextRequest, path: string) {
   return NextResponse.redirect(new URL(path, request.url));
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     await saveConnectedAccount(userId, tokens);
   } catch (err) {
     console.error("Error intercambiando el código OAuth de Mercado Pago", err);
+    captureError(err, { userId });
     return redirectTo(request, "/account/mercadopago?error=exchange_failed");
   }
 

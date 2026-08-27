@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { DisputeError, resolveDispute } from "@/lib/dispute";
 import { OrderExpiredError, OrderNotCapturableError } from "@/lib/capture-order";
+import { captureError } from "@/lib/monitoring";
 
 type Body = { resolution?: "RELEASE" | "REFUND"; note?: string };
 
@@ -42,6 +43,7 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error("Error resolviendo disputa", error);
+    captureError(error, { orderId: id });
     return NextResponse.json(
       { error: "No pudimos resolver el reclamo." },
       { status: 502 },

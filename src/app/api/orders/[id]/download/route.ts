@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { DeliveryError, getDeliveryForDownload } from "@/lib/delivery";
+import { captureError } from "@/lib/monitoring";
 
 export async function GET(
   request: NextRequest,
@@ -33,6 +34,7 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     console.error("Error descargando la entrega", error);
+    captureError(error, { orderId: id });
     return NextResponse.json(
       { error: "No pudimos descargar el archivo." },
       { status: 500 },

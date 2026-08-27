@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { formatArsCents } from "@/lib/format";
 import { simpleMarkdownToHtml, simpleMarkdownToPlainText } from "@/lib/simple-markdown";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Notificaciones por mail de los eventos del flujo de una orden. Sigue el
@@ -170,6 +171,7 @@ export async function notify(
     });
   } catch (error) {
     console.error(`[email] Error enviando "${key}" a ${input.to}`, error);
+    captureError(error, { template: key, to: input.to });
   }
 }
 
@@ -215,5 +217,6 @@ export async function notifyOrderEvent(
       `[email] Error preparando la notificación "${key}" para la orden ${orderId}`,
       error,
     );
+    captureError(error, { template: key, orderId });
   }
 }

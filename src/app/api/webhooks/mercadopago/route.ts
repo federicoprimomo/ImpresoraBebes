@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSellerAccessToken } from "@/lib/connected-account";
 import { getPayment } from "@/lib/mercadopago";
 import { finalizeReleasedOrder } from "@/lib/capture-order";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Recibe las notificaciones de cambio de estado de pago de Mercado Pago.
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error reconciliando webhook de Mercado Pago", error);
+    captureError(error, { orderId: order.id, paymentId });
     // Devolvemos 200 igual: si devolvemos error, MP reintenta indefinidamente
     // esta misma notificación, y el problema (ej. token del vendedor vencido)
     // no se va a resolver solo reintentando.

@@ -53,6 +53,11 @@ function getSetupChecks(): SetupCheck[] {
       ok: Boolean(process.env.RESEND_API_KEY),
       hint: "RESEND_API_KEY — opcional, pero sin esto no se manda ningún email de los eventos de una orden.",
     },
+    {
+      label: "Monitoreo de errores",
+      ok: Boolean(process.env.SENTRY_DSN),
+      hint: "SENTRY_DSN — opcional, pero sin esto un error atrapado en un catch (webhook, worker, factura, mail) solo queda en los logs.",
+    },
   ];
 }
 
