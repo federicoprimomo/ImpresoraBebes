@@ -16,6 +16,17 @@ import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents } from "@/lib/format";
 import { getFaqItems, getSiteContentMap } from "@/lib/site-content";
 import { captureError } from "@/lib/monitoring";
+import { MercadoPagoBadge } from "@/components/mercadopago-badge";
+
+// Paleta para los chips de ícono de "Cómo funciona" y "Por qué es seguro"
+// — antes todos usaban el mismo lila (brand-muted) y quedaba muy plano.
+// Se recorre por índice, no representa nada semántico por color.
+const CHIP_COLORS = [
+  "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300",
+  "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300",
+  "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+  "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
+];
 
 const buyerSteps = [
   {
@@ -149,6 +160,10 @@ export default async function Home() {
           aria-hidden="true"
           className="pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full bg-brand/20 blur-3xl dark:bg-brand/10"
         />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-mp-blue/15 blur-3xl dark:bg-mp-blue/10"
+        />
         <div className="relative mx-auto grid max-w-5xl gap-12 lg:grid-cols-2 lg:items-center">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-400">
@@ -179,9 +194,7 @@ export default async function Home() {
             </div>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-zinc-500 lg:justify-start dark:text-zinc-500">
-              <span className="inline-flex items-center gap-1.5">
-                <BuildingBankIcon className="h-4 w-4" /> Procesado por Mercado Pago
-              </span>
+              <MercadoPagoBadge iconClassName="h-4 w-4" className="text-xs font-normal text-zinc-500 dark:text-zinc-500" />
               <span className="inline-flex items-center gap-1.5">
                 <ReceiptIcon className="h-4 w-4" /> Comisión facturada en ARCA
               </span>
@@ -240,6 +253,29 @@ export default async function Home() {
                 Se libera solo al confirmarse la entrega
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Respaldo de Mercado Pago — clave dejar esto bien visible: la plata
+          nunca pasa por una cuenta de Escrow.ar. */}
+      <section className="border-b border-black/10 bg-gradient-to-r from-[#eaf9ff] to-[#eef2ff] px-6 py-10 dark:border-white/10 dark:from-[#0a2540] dark:to-[#1e1b4b]">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md dark:bg-zinc-900">
+            {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático */}
+            <img src="/mercadopago-icon.svg" alt="" className="h-9 w-9" />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-950 dark:text-zinc-50">
+              Cada pago se procesa 100% a través de{" "}
+              <span className="text-[#0a0080] dark:text-[#4dd2ff]">Mercado Pago</span>
+            </p>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Escrow.ar no tiene ninguna cuenta bancaria propia por donde
+              pase tu dinero. La plata va directo de tu tarjeta a la
+              infraestructura de Mercado Pago, y de ahí a la cuenta de
+              Mercado Pago del vendedor — nunca a una cuenta nuestra.
+            </p>
           </div>
         </div>
       </section>
@@ -308,7 +344,9 @@ export default async function Home() {
               <ol className="mt-4 flex flex-col gap-5">
                 {buyerSteps.map((step, i) => (
                   <li key={step.title} className="flex gap-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-muted-foreground shadow-sm">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-sm ${CHIP_COLORS[i % CHIP_COLORS.length]}`}
+                    >
                       <step.icon className="h-4.5 w-4.5" />
                     </div>
                     <div>
@@ -334,7 +372,9 @@ export default async function Home() {
               <ol className="mt-4 flex flex-col gap-5">
                 {sellerSteps.map((step, i) => (
                   <li key={step.title} className="flex gap-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-muted-foreground shadow-sm">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-sm ${CHIP_COLORS[(i + 1) % CHIP_COLORS.length]}`}
+                    >
                       <step.icon className="h-4.5 w-4.5" />
                     </div>
                     <div>
@@ -402,12 +442,14 @@ export default async function Home() {
             Por qué es seguro
           </h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
-            {trustPoints.map((point) => (
+            {trustPoints.map((point, i) => (
               <div
                 key={point.title}
                 className="rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-zinc-800"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-muted text-brand-muted-foreground">
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full ${CHIP_COLORS[i % CHIP_COLORS.length]}`}
+                >
                   <point.icon className="h-4.5 w-4.5" />
                 </div>
                 <p className="mt-3 font-medium text-zinc-950 dark:text-zinc-50">

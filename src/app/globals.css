@@ -9,6 +9,12 @@
   --brand-foreground: #ffffff;
   --brand-muted: #eef2ff;
   --brand-muted-foreground: #4338ca;
+
+  /* Azul oficial de Mercado Pago (tomado de su ícono de marca) — se usa
+     puntualmente para dejar clarísimo qué procesa el pago, nunca para el
+     resto de la UI (esa es la marca de Escrow.ar, no la de ellos). */
+  --mp-blue: #00b1ea;
+  --mp-blue-dark: #0a0080;
 }
 
 @theme inline {
@@ -19,6 +25,8 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-muted: var(--brand-muted);
   --color-brand-muted-foreground: var(--brand-muted-foreground);
+  --color-mp-blue: var(--mp-blue);
+  --color-mp-blue-dark: var(--mp-blue-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
