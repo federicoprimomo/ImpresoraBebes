@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatArsCents, formatDateTime } from "./format";
+import { formatArsCents, formatDateTime, parseArgentinaDateTimeLocal } from "./format";
 
 describe("formatArsCents", () => {
   it("formatea centavos como pesos argentinos", () => {
@@ -33,5 +33,31 @@ describe("formatDateTime", () => {
     const fromDate = formatDateTime(new Date("2026-01-15T10:30:00Z"));
     const fromString = formatDateTime("2026-01-15T10:30:00Z");
     expect(fromString).toBe(fromDate);
+  });
+
+  it("siempre muestra hora de Argentina (UTC-3), sin importar el huso del proceso", () => {
+    // 21:00 UTC es 18:00 (6pm) en Argentina — si esto rompe, formatDateTime
+    // dejó de fijar timeZone y volvió a depender del huso del server.
+    expect(formatDateTime("2026-08-27T21:00:00Z")).toContain("6:00");
+  });
+});
+
+describe("parseArgentinaDateTimeLocal", () => {
+  it("da null para string vacío", () => {
+    expect(parseArgentinaDateTimeLocal("")).toBeNull();
+  });
+
+  it("interpreta el valor de un <input datetime-local> como hora de Argentina, no la del proceso", () => {
+    // Sin esto, "18:00" cargado por alguien en Argentina se guardaba como
+    // 18:00 UTC (server) en vez de 21:00 UTC (= 18:00 ART real) — un
+    // corrimiento de 3hs suficiente para que un evento recién cargado
+    // pareciera ya pasado.
+    const parsed = parseArgentinaDateTimeLocal("2026-08-27T18:00");
+    expect(parsed?.toISOString()).toBe("2026-08-27T21:00:00.000Z");
+  });
+
+  it("acepta el valor con segundos incluidos", () => {
+    const parsed = parseArgentinaDateTimeLocal("2026-08-27T18:00:30");
+    expect(parsed?.toISOString()).toBe("2026-08-27T21:00:30.000Z");
   });
 });

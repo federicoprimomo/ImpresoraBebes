@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
+import { parseArgentinaDateTimeLocal } from "@/lib/format";
 import { PROVINCIA_OPTIONS, DELIVERY_PLATFORMS } from "@/lib/argentina";
 import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
 import { getGenresWithSubgenres } from "@/lib/genres";
@@ -112,7 +113,7 @@ async function createListing(formData: FormData) {
       title,
       artistName: artistName || null,
       description: description || null,
-      eventDate: eventDateRaw ? new Date(eventDateRaw) : null,
+      eventDate: parseArgentinaDateTimeLocal(eventDateRaw),
       priceArs,
       platform: platform || null,
       provincia,

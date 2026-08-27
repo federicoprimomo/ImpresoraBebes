@@ -27,6 +27,12 @@ export async function SiteHeader() {
 
           {session?.user ? (
             <>
+              <Link
+                href="/listings/mine"
+                className="hidden hover:text-zinc-950 sm:inline dark:hover:text-zinc-50"
+              >
+                Mis publicaciones
+              </Link>
               <Link href="/orders" className="hidden hover:text-zinc-950 sm:inline dark:hover:text-zinc-50">
                 Mis compras/ventas
               </Link>
