@@ -2,6 +2,14 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { saveFile } from "@/lib/storage";
+import { PROVINCIA_OPTIONS, DELIVERY_PLATFORMS } from "@/lib/argentina";
+import { getGenresWithSubgenres } from "@/lib/genres";
+import { GenreSubgenreSelect } from "@/components/genre-subgenre-select";
+import type { Provincia } from "@prisma/client";
+
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5MB — de sobra para una foto del evento.
+const ALLOWED_PHOTO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 async function createListing(formData: FormData) {
   "use server";
@@ -12,9 +20,16 @@ async function createListing(formData: FormData) {
   }
 
   const title = String(formData.get("title") ?? "").trim();
+  const artistName = String(formData.get("artistName") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const eventDateRaw = String(formData.get("eventDate") ?? "").trim();
   const priceRaw = String(formData.get("price") ?? "").trim();
+  const platform = String(formData.get("platform") ?? "").trim();
+  const provinciaRaw = String(formData.get("provincia") ?? "").trim();
+  const localidad = String(formData.get("localidad") ?? "").trim();
+  const genreId = String(formData.get("genreId") ?? "").trim();
+  const subgenreId = String(formData.get("subgenreId") ?? "").trim();
+  const photo = formData.get("photo");
 
   const priceArs = Math.round(Number(priceRaw.replace(",", ".")) * 100);
 
@@ -22,12 +37,59 @@ async function createListing(formData: FormData) {
     throw new Error("Completá al menos el título y un precio válido.");
   }
 
+  let provincia: Provincia | null = null;
+  if (provinciaRaw) {
+    const match = PROVINCIA_OPTIONS.find((option) => option.value === provinciaRaw);
+    if (!match) throw new Error("Provincia inválida.");
+    provincia = match.value;
+  }
+
+  // Si eligió subgénero tiene que haber elegido el género al que pertenece
+  // — se valida acá porque el filtrado del segundo <select> es solo de UI.
+  let validGenreId: string | null = null;
+  let validSubgenreId: string | null = null;
+  if (genreId) {
+    const genre = await prisma.genre.findUnique({
+      where: { id: genreId },
+      include: { subgenres: true },
+    });
+    if (!genre) throw new Error("Género inválido.");
+    validGenreId = genre.id;
+    if (subgenreId) {
+      const subgenre = genre.subgenres.find((s) => s.id === subgenreId);
+      if (!subgenre) throw new Error("Subgénero inválido para el género elegido.");
+      validSubgenreId = subgenre.id;
+    }
+  }
+
+  let photoStorageKey: string | null = null;
+  let photoContentType: string | null = null;
+  if (photo instanceof File && photo.size > 0) {
+    if (!ALLOWED_PHOTO_TYPES.has(photo.type)) {
+      throw new Error("La foto tiene que ser PNG, JPG o WEBP.");
+    }
+    if (photo.size > MAX_PHOTO_SIZE_BYTES) {
+      throw new Error("La foto es demasiado grande (máximo 5MB).");
+    }
+    const buffer = Buffer.from(await photo.arrayBuffer());
+    photoStorageKey = await saveFile(buffer, photo.type);
+    photoContentType = photo.type;
+  }
+
   const listing = await prisma.listing.create({
     data: {
       title,
+      artistName: artistName || null,
       description: description || null,
       eventDate: eventDateRaw ? new Date(eventDateRaw) : null,
       priceArs,
+      platform: platform || null,
+      provincia,
+      localidad: localidad || null,
+      genreId: validGenreId,
+      subgenreId: validSubgenreId,
+      photoStorageKey,
+      photoContentType,
       // El modelo de datos tiene un campo `quantity`, pero todavía no hay
       // lógica de stock (decremento atómico, disponibilidad parcial, etc.)
       // — se vende de a una entrada por publicación hasta que eso se
@@ -47,9 +109,10 @@ export default async function NewListingPage() {
     redirect("/login");
   }
 
-  const connectedAccount = await prisma.connectedAccount.findUnique({
-    where: { userId: session.user.id },
-  });
+  const [connectedAccount, genres] = await Promise.all([
+    prisma.connectedAccount.findUnique({ where: { userId: session.user.id } }),
+    getGenresWithSubgenres(),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-lg flex-1 flex-col justify-center px-6 py-16">
@@ -68,32 +131,101 @@ export default async function NewListingPage() {
         </p>
       ) : null}
 
-      <form action={createListing} className="mt-6 flex flex-col gap-4">
+      <form action={createListing} encType="multipart/form-data" className="mt-6 flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          Título
+          Nombre del evento
           <input
             name="title"
             required
-            placeholder="Ej: Entrada campo delantero - Recital X"
+            placeholder="Ej: Recital de Bandalos Chinos"
             className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          Descripción (opcional)
+          Artista / banda (opcional)
+          <input
+            name="artistName"
+            placeholder="Ej: Bandalos Chinos"
+            className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          Descripción adicional (opcional)
           <textarea
             name="description"
             rows={3}
+            placeholder="Sector, fila, cualquier detalle que ayude a quien compra"
             className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
           />
         </label>
 
+        <GenreSubgenreSelect genres={genres} />
+
         <label className="flex flex-col gap-1 text-sm">
-          Fecha del evento (opcional)
+          Fecha y hora del evento (opcional)
           <input
             type="datetime-local"
             name="eventDate"
             className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+          />
+        </label>
+
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            Provincia (opcional)
+            <select
+              name="provincia"
+              defaultValue=""
+              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            >
+              <option value="">Sin especificar</option>
+              {PROVINCIA_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-1 flex-col gap-1 text-sm">
+            Localidad / zona (opcional)
+            <input
+              name="localidad"
+              placeholder="Ej: Palermo, La Plata..."
+              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+            />
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-1 text-sm">
+          Plataforma de envío de la entrada (opcional)
+          <input
+            name="platform"
+            list="delivery-platforms"
+            placeholder="Ej: Ticketek"
+            className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
+          />
+          <datalist id="delivery-platforms">
+            {DELIVERY_PLATFORMS.map((platform) => (
+              <option key={platform} value={platform} />
+            ))}
+          </datalist>
+        </label>
+        <p className="-mt-2 text-xs text-zinc-500">
+          Es solo informativo, para que quien compra sepa por dónde va a
+          recibirla. La entrega en sí siempre se sube manualmente acá una vez
+          que la venta está iniciada.
+        </p>
+
+        <label className="flex flex-col gap-1 text-sm">
+          Foto del evento (opcional)
+          <input
+            type="file"
+            name="photo"
+            accept="image/png,image/jpeg,image/webp"
+            className="rounded-lg border border-black/10 px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-brand-muted file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-muted-foreground dark:border-white/10 dark:bg-transparent"
           />
         </label>
 

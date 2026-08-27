@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -5,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateOrderFees } from "@/lib/fees";
 import { formatArsCents, formatDateTime } from "@/lib/format";
+import { PROVINCIA_LABELS } from "@/lib/argentina";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,8 @@ export default async function ListingDetailPage({
   const listing = await prisma.listing.findUnique({
     where: { id },
     include: {
+      genre: { select: { name: true } },
+      subgenre: { select: { name: true } },
       seller: {
         select: {
           id: true,
@@ -37,8 +41,28 @@ export default async function ListingDetailPage({
   const sellerConnected = listing.seller.connectedAccount?.status === "CONNECTED";
   const canBuy = listing.status === "ACTIVE" && !isOwnListing && sellerConnected;
 
+  const metaItems = [
+    listing.artistName ? `Artista: ${listing.artistName}` : null,
+    listing.genre ? `Género: ${listing.genre.name}${listing.subgenre ? ` / ${listing.subgenre.name}` : ""}` : null,
+    listing.provincia
+      ? `Ubicación: ${listing.localidad ? `${listing.localidad}, ` : ""}${PROVINCIA_LABELS[listing.provincia]}`
+      : null,
+    listing.platform ? `Envío por: ${listing.platform}` : null,
+  ].filter((item): item is string => Boolean(item));
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
+      {listing.photoStorageKey ? (
+        <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+          <Image
+            src={`/api/listings/${listing.id}/photo`}
+            alt={listing.title}
+            fill
+            className="object-cover"
+          />
+        </div>
+      ) : null}
+
       <p className="text-sm text-zinc-500">
         {listing.eventDate ? formatDateTime(listing.eventDate) : "Fecha a confirmar"}
       </p>
@@ -49,6 +73,14 @@ export default async function ListingDetailPage({
         Vende {listing.seller.name ?? listing.seller.email}
       </p>
 
+      {metaItems.length > 0 ? (
+        <ul className="mt-4 flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+          {metaItems.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+
       {listing.description ? (
         <p className="mt-6 whitespace-pre-wrap text-zinc-800 dark:text-zinc-200">
           {listing.description}
@@ -57,21 +89,15 @@ export default async function ListingDetailPage({
 
       <div className="mt-8 rounded-xl border border-black/10 p-5 dark:border-white/10">
         <dl className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-zinc-600 dark:text-zinc-400">Precio de la entrada</dt>
-            <dd>{formatArsCents(fees.priceArs)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-zinc-600 dark:text-zinc-400">
-              Comisión de la plataforma
-            </dt>
-            <dd>{formatArsCents(fees.buyerFeeArs)}</dd>
-          </div>
-          <div className="mt-2 flex justify-between border-t border-black/10 pt-2 font-semibold dark:border-white/10">
+          <div className="flex justify-between font-semibold">
             <dt>Total a pagar</dt>
             <dd>{formatArsCents(fees.amountArs)}</dd>
           </div>
         </dl>
+        <p className="mt-2 text-xs text-zinc-500">
+          Pagás exactamente el precio publicado — la comisión de la plataforma
+          la paga el vendedor.
+        </p>
 
         {listing.status !== "ACTIVE" ? (
           <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
