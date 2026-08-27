@@ -40,6 +40,8 @@ Aparte de esa comisión, Mercado Pago cobra su propio costo por procesar el cobr
 
 El vendedor entrega la entrada subiéndola a la plataforma. El comprador tiene una ventana de tiempo desde la descarga para reportar un problema. Mientras el reclamo esté abierto, el pago permanece retenido. Un administrador de la plataforma revisa cada reclamo y decide si corresponde liberar el pago al vendedor o cancelar la autorización.
 
+El pago del comprador queda autorizado y retenido, pero no se cobra de verdad hasta que se libera — recién en ese momento Mercado Pago lo captura y se aplican las comisiones (la de Escrow.ar y la de Mercado Pago). Si un reclamo se resuelve cancelando la autorización, no hay nada que reembolsar porque nunca hubo un cobro: el comprador no pierde el precio de la entrada ni ninguna comisión.
+
 # Límites de responsabilidad
 
 Escrow.ar no participa en la organización del evento ni controla la autenticidad de cada entrada más allá de detectar que el mismo archivo no se haya usado en más de una venta. Mercado Pago retiene la autorización de pago por un máximo de 7 días; si un reclamo no se resuelve en ese plazo, la operación se cae automáticamente.
@@ -91,6 +93,11 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
     question: "¿Qué pasa si el vendedor nunca sube la entrada?",
     answer:
       "El pago sigue retenido, nunca capturado. Podés abrir un reclamo en cualquier momento mientras esperás, y si nadie lo resuelve antes de los 7 días que da Mercado Pago, la autorización se cae sola — no se le cobra nada a tu tarjeta más allá de esa retención temporal.",
+  },
+  {
+    question: "Si un reclamo se resuelve a mi favor, ¿pierdo la comisión de Mercado Pago?",
+    answer:
+      "No perdés nada — ni el precio, ni ninguna comisión. Tu tarjeta no se cobra en el momento de pagar, solo queda autorizada y retenida (como una seña, no un cobro). Recién se cobra de verdad cuando la entrega se confirma. Si un reclamo termina a tu favor, lo que hacemos es cancelar esa autorización, no devolverte un cobro — porque nunca hubo cobro. Y como ni nuestra comisión ni la de Mercado Pago se aplican hasta ese momento, si no se llega a cobrar, tampoco se descuenta ninguna de las dos.",
   },
   {
     question: "¿Ustedes tienen acceso a mi tarjeta o a mi cuenta bancaria?",
