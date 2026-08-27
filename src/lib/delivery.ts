@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 import { deleteFile, readFile, saveFile } from "@/lib/storage";
+import { notifyOrderEvent } from "@/lib/email";
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB — de sobra para un PDF/QR de entrada.
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -102,6 +103,8 @@ export async function uploadDelivery(input: {
   if (order.delivery) {
     await deleteFile(order.delivery.storageKey);
   }
+
+  await notifyOrderEvent("delivery-ready", input.orderId, { to: "buyer" });
 }
 
 /**
@@ -140,6 +143,8 @@ export async function getDeliveryForDownload(input: {
       where: { id: order.id },
       data: { downloadedAt, releaseDueAt },
     });
+
+    await notifyOrderEvent("delivery-downloaded", order.id, { to: "seller" });
   }
 
   return { file, fileName: order.delivery.fileName };

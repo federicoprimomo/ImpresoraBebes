@@ -12,6 +12,7 @@ import {
 } from "@/lib/connected-account";
 import { createReservePayment } from "@/lib/mercadopago";
 import { describePaymentRejection } from "@/lib/payment-status-messages";
+import { notifyOrderEvent } from "@/lib/email";
 
 // Ver docs/tarjetas-de-prueba de Mercado Pago — 7 días es el límite de MP
 // para capturar una autorización, no algo que definamos nosotros.
@@ -156,6 +157,9 @@ export async function POST(request: NextRequest) {
           captureDeadlineAt,
         },
       });
+
+      await notifyOrderEvent("order-created", order.id, { to: "seller" });
+      await notifyOrderEvent("payment-held", order.id, { to: "buyer" });
 
       return NextResponse.json({ orderId: order.id, status: "PAYMENT_HELD" });
     }

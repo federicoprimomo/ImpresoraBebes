@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSellerAccessToken } from "@/lib/connected-account";
 import { cancelPayment } from "@/lib/mercadopago";
 import { captureOrder } from "@/lib/capture-order";
+import { notifyOrderEvent } from "@/lib/email";
 
 export class DisputeError extends Error {}
 
@@ -53,6 +54,8 @@ export async function openDispute(input: {
       data: { status: "DISPUTED" },
     }),
   ]);
+
+  await notifyOrderEvent("dispute-opened", order.id, { to: "seller" });
 }
 
 export type DisputeResolution = "RELEASE" | "REFUND";
@@ -79,7 +82,7 @@ export async function resolveDispute(input: {
   }
 
   if (input.resolution === "RELEASE") {
-    await captureOrder(order.id); // ya deja la orden en RELEASED
+    await captureOrder(order.id); // ya deja la orden en RELEASED (y avisa al vendedor)
 
     await prisma.dispute.update({
       where: { orderId: order.id },
@@ -88,6 +91,14 @@ export async function resolveDispute(input: {
         resolvedById: input.adminId,
         resolution: input.note?.trim() || null,
         resolvedAt: new Date(),
+      },
+    });
+
+    await notifyOrderEvent("dispute-resolved", order.id, {
+      to: "both",
+      extraVars: {
+        resolutionSummary:
+          "se liberó el pago al vendedor" + (input.note ? ` — ${input.note.trim()}` : ""),
       },
     });
     return;
@@ -137,4 +148,13 @@ export async function resolveDispute(input: {
       },
     }),
   ]);
+
+  await notifyOrderEvent("dispute-resolved", order.id, {
+    to: "both",
+    extraVars: {
+      resolutionSummary:
+        "se canceló el pago, no se le cobró nada al comprador" +
+        (input.note ? ` — ${input.note.trim()}` : ""),
+    },
+  });
 }

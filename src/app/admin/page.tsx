@@ -48,6 +48,11 @@ function getSetupChecks(): SetupCheck[] {
       ok: getArcaConfig() !== null,
       hint: "ARCA_ENABLED=true + CUIT + certificado — opcional, pero sin esto la comisión no se factura sola.",
     },
+    {
+      label: "Notificaciones por mail",
+      ok: Boolean(process.env.RESEND_API_KEY),
+      hint: "RESEND_API_KEY — opcional, pero sin esto no se manda ningún email de los eventos de una orden.",
+    },
   ];
 }
 
@@ -143,12 +148,20 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
           Panel de administración
         </h1>
-        <Link
-          href="/admin/content"
-          className="flex h-9 shrink-0 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
-        >
-          Editar contenido del sitio
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/admin/content"
+            className="flex h-9 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
+          >
+            Editar contenido del sitio
+          </Link>
+          <Link
+            href="/admin/emails"
+            className="flex h-9 items-center justify-center rounded-full border border-black/10 px-4 text-sm font-medium transition-colors hover:bg-black/[.04] dark:border-white/10 dark:hover:bg-white/[.06]"
+          >
+            Plantillas de email
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">

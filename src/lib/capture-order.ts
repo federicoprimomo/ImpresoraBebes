@@ -7,6 +7,7 @@ import { getSellerAccessToken } from "@/lib/connected-account";
 import { capturePayment } from "@/lib/mercadopago";
 import { getArcaConfig } from "@/lib/arca/config";
 import { issueCommissionInvoice } from "@/lib/arca/invoice";
+import { notifyOrderEvent } from "@/lib/email";
 
 export class OrderNotCapturableError extends Error {}
 export class OrderExpiredError extends Error {}
@@ -54,6 +55,8 @@ export async function finalizeReleasedOrder(order: Order, releasedAt = new Date(
       console.error(`Error facturando automáticamente la orden ${order.id}`, error);
     });
   }
+
+  await notifyOrderEvent("payment-released", order.id, { to: "seller" });
 }
 
 /**
@@ -100,6 +103,7 @@ export async function captureOrder(orderId: string) {
         data: { status: "ACTIVE" },
       }),
     ]);
+    await notifyOrderEvent("order-expired", orderId, { to: "both" });
     throw new OrderExpiredError(
       `La orden ${orderId} superó el deadline de captura de Mercado Pago.`,
     );

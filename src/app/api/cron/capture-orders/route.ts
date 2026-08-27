@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { captureOrder } from "@/lib/capture-order";
+import { notifyOrderEvent } from "@/lib/email";
 
 /**
  * Worker de liberación automática. Pensado para correr como cron (ej.
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
         },
       });
     }
+    await notifyOrderEvent("order-expired", order.id, { to: "both" });
     expiredIds.push(order.id);
   }
 
