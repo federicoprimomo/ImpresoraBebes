@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { isPublicBrowsingEnabled } from "@/lib/site-content";
 import { PROVINCIA_LABELS, PROVINCIA_OPTIONS } from "@/lib/argentina";
-import { getGenresWithSubgenres, getUsedLocalidades } from "@/lib/genres";
+import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
+import { getGenresWithSubgenres } from "@/lib/genres";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 
 export const dynamic = "force-dynamic";
@@ -92,10 +93,7 @@ export default async function ListingsPage({
   const fecha = params.fecha?.trim() ?? "";
   const orden = params.orden?.trim() || "fecha";
 
-  const [genres, usedLocalidades] = await Promise.all([
-    getGenresWithSubgenres(),
-    getUsedLocalidades(),
-  ]);
+  const genres = await getGenresWithSubgenres();
 
   const selectedGenre = genres.find((g) => g.id === genreId);
   // Si el subgenreId de la URL no pertenece al género seleccionado (típico
@@ -106,9 +104,16 @@ export default async function ListingsPage({
   const effectiveSubgenreId = selectedGenre?.subgenres.some((s) => s.id === subgenreId)
     ? subgenreId
     : "";
-  const localidadOptions = usedLocalidades.filter(
-    (row) => !provincia || row.provincia === provincia,
-  );
+  // Localidad depende de elegir provincia primero — el dataset completo
+  // (LOCALIDADES_ARGENTINA) no depende de que ya haya publicaciones reales
+  // en esa zona, a diferencia de antes.
+  const localidadOptions: string[] = provincia
+    ? (LOCALIDADES_ARGENTINA[provincia as Provincia] ?? [])
+    : [];
+  // Mismo caso que con subgenreId: si la localidad de la URL no pertenece
+  // a la provincia elegida (cambiaste de provincia con una localidad ya
+  // tildada), se ignora en vez de dejar un filtro fantasma.
+  const effectiveLocalidad = localidadOptions.includes(localidad) ? localidad : "";
 
   const where: Prisma.ListingWhereInput = { status: "ACTIVE", isPublic: true };
   if (q) {
@@ -118,7 +123,7 @@ export default async function ListingsPage({
     ];
   }
   if (provincia) where.provincia = provincia as Provincia;
-  if (localidad) where.localidad = localidad;
+  if (effectiveLocalidad) where.localidad = effectiveLocalidad;
   if (genreId) where.genreId = genreId;
   if (effectiveSubgenreId) where.subgenreId = effectiveSubgenreId;
   const range = fechaRange(fecha);
@@ -142,7 +147,9 @@ export default async function ListingsPage({
     },
   });
 
-  const hasFilters = Boolean(q || provincia || localidad || genreId || effectiveSubgenreId || fecha);
+  const hasFilters = Boolean(
+    q || provincia || effectiveLocalidad || genreId || effectiveSubgenreId || fecha,
+  );
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16">
@@ -182,12 +189,16 @@ export default async function ListingsPage({
 
           <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Localidad / zona
-            <AutoSubmitSelect name="localidad" defaultValue={localidad} className={inputClass}>
-              <option value="">Todas</option>
-              {localidadOptions.map((row) => (
-                <option key={`${row.provincia}-${row.localidad}`} value={row.localidad}>
-                  {row.localidad}
-                  {!provincia ? ` (${PROVINCIA_LABELS[row.provincia as Provincia]})` : ""}
+            <AutoSubmitSelect
+              name="localidad"
+              defaultValue={effectiveLocalidad}
+              disabled={localidadOptions.length === 0}
+              className={`${inputClass} disabled:opacity-50`}
+            >
+              <option value="">{provincia ? "Todas" : "Elegí una provincia primero"}</option>
+              {localidadOptions.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
                 </option>
               ))}
             </AutoSubmitSelect>

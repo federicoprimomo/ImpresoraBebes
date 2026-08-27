@@ -4,10 +4,12 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/storage";
 import { PROVINCIA_OPTIONS, DELIVERY_PLATFORMS } from "@/lib/argentina";
+import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
 import { getGenresWithSubgenres } from "@/lib/genres";
 import { getFeePercentages, type FeePercentages } from "@/lib/fees";
 import { captureError } from "@/lib/monitoring";
 import { GenreSubgenreSelect } from "@/components/genre-subgenre-select";
+import { ProvinciaLocalidadSelect } from "@/components/provincia-localidad-select";
 import { PriceFeeEstimate } from "@/components/price-fee-estimate";
 import type { Provincia } from "@prisma/client";
 
@@ -61,6 +63,18 @@ async function createListing(formData: FormData) {
     provincia = match.value;
   }
 
+  // La localidad viene de un <select> precargado (LOCALIDADES_ARGENTINA),
+  // así que igual que con género/subgénero, se valida que pertenezca a la
+  // provincia elegida — el filtrado del segundo <select> es solo de UI.
+  let localidadValida: string | null = null;
+  if (localidad) {
+    if (!provincia) throw new Error("Elegí una provincia antes de la localidad.");
+    if (!LOCALIDADES_ARGENTINA[provincia].includes(localidad)) {
+      throw new Error("Localidad inválida para la provincia elegida.");
+    }
+    localidadValida = localidad;
+  }
+
   // Si eligió subgénero tiene que haber elegido el género al que pertenece
   // — se valida acá porque el filtrado del segundo <select> es solo de UI.
   let validGenreId: string | null = null;
@@ -102,7 +116,7 @@ async function createListing(formData: FormData) {
       priceArs,
       platform: platform || null,
       provincia,
-      localidad: localidad || null,
+      localidad: localidadValida,
       genreId: validGenreId,
       subgenreId: validSubgenreId,
       photoStorageKey,
@@ -190,32 +204,7 @@ export default async function NewListingPage() {
           />
         </label>
 
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            Provincia (opcional)
-            <select
-              name="provincia"
-              defaultValue=""
-              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
-            >
-              <option value="">Sin especificar</option>
-              {PROVINCIA_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            Localidad / zona (opcional)
-            <input
-              name="localidad"
-              placeholder="Ej: Palermo, La Plata..."
-              className="rounded-lg border border-black/10 px-3 py-2 dark:border-white/10 dark:bg-transparent"
-            />
-          </label>
-        </div>
+        <ProvinciaLocalidadSelect />
 
         <label className="flex flex-col gap-1 text-sm">
           Plataforma de envío de la entrada (opcional)

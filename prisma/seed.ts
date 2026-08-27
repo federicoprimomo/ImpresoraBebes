@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import { FAQ_DEFAULTS } from "../src/lib/site-content";
+import { GENRE_DEFAULTS } from "../src/lib/genres";
 
 const prisma = new PrismaClient();
 
@@ -20,6 +21,9 @@ const prisma = new PrismaClient();
  *      — quedaron de una redacción vieja (ej. "la comisión se reparte entre
  *      comprador y vendedor", de cuando existía ese modelo) que ya no
  *      describe cómo funciona la plataforma y nadie fue a borrar a mano.
+ *   4. Carga géneros y subgéneros por defecto (GENRE_DEFAULTS) con upsert
+ *      por nombre — crea los que falten, nunca pisa uno que el admin ya
+ *      haya renombrado o editado desde /admin/categories.
  */
 const OBSOLETE_FAQ_QUESTIONS = [
   // Del modelo de comisión dividida (reemplazado por 10% único a cargo
@@ -82,6 +86,35 @@ async function main() {
     } else {
       console.log("FaqItem ya tiene todas las preguntas por defecto — no se tocó.");
     }
+  }
+
+  let genresCreated = 0;
+  let subgenresCreated = 0;
+  for (const [index, genreDefault] of GENRE_DEFAULTS.entries()) {
+    const existing = await prisma.genre.findUnique({ where: { name: genreDefault.name } });
+    const genre = await prisma.genre.upsert({
+      where: { name: genreDefault.name },
+      create: { name: genreDefault.name, order: index },
+      update: {},
+    });
+    if (!existing) genresCreated++;
+
+    for (const [subIndex, subgenreName] of genreDefault.subgenres.entries()) {
+      const existingSubgenre = await prisma.subgenre.findUnique({
+        where: { genreId_name: { genreId: genre.id, name: subgenreName } },
+      });
+      await prisma.subgenre.upsert({
+        where: { genreId_name: { genreId: genre.id, name: subgenreName } },
+        create: { genreId: genre.id, name: subgenreName, order: subIndex },
+        update: {},
+      });
+      if (!existingSubgenre) subgenresCreated++;
+    }
+  }
+  if (genresCreated > 0 || subgenresCreated > 0) {
+    console.log(`Cargados ${genresCreated} género(s) y ${subgenresCreated} subgénero(s) nuevos.`);
+  } else {
+    console.log("Genre/Subgenre ya tienen todos los defaults — no se tocó.");
   }
 }
 
