@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { LockIcon, MercadoPagoIcon } from "@/components/icons";
+
 // El SDK de Mercado Pago no publica tipos oficiales para v2; lo tipamos
 // mínimamente con lo que efectivamente usamos.
 type CardFormData = {
@@ -215,55 +217,71 @@ export function CardCheckoutForm({
     "h-11 rounded-lg border border-black/10 px-3 py-2 text-sm dark:border-white/10 dark:bg-transparent";
 
   return (
-    <form id="form-checkout" className="flex flex-col gap-3">
-      <div id="form-checkout__cardNumber" className={fieldClass} />
-      <div className="flex gap-3">
-        <div id="form-checkout__expirationDate" className={`${fieldClass} flex-1`} />
-        <div id="form-checkout__securityCode" className={`${fieldClass} flex-1`} />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 rounded-lg bg-[#009ee3]/10 px-3 py-2.5 text-sm text-[#0a5a85] dark:text-[#5fc3ee]">
+        <MercadoPagoIcon className="h-5 w-5 shrink-0 text-[#009ee3]" />
+        <p>
+          <span className="font-medium">Este es el formulario seguro de Mercado Pago.</span>{" "}
+          Los datos de tu tarjeta viajan encriptados directo a Mercado Pago — nosotros
+          nunca los vemos ni los guardamos.
+        </p>
       </div>
-      <input
-        id="form-checkout__cardholderName"
-        type="text"
-        placeholder="Titular de la tarjeta"
-        className={fieldClass}
-      />
-      <select id="form-checkout__issuer" className={fieldClass} />
-      <select id="form-checkout__installments" className={fieldClass} />
-      <div className="flex gap-3">
-        <select
-          id="form-checkout__identificationType"
-          className={`${fieldClass} w-28`}
-        />
+
+      <form id="form-checkout" className="flex flex-col gap-3">
+        <div id="form-checkout__cardNumber" className={fieldClass} />
+        <div className="flex gap-3">
+          <div id="form-checkout__expirationDate" className={`${fieldClass} flex-1`} />
+          <div id="form-checkout__securityCode" className={`${fieldClass} flex-1`} />
+        </div>
         <input
-          id="form-checkout__identificationNumber"
+          id="form-checkout__cardholderName"
           type="text"
-          placeholder="Número de documento"
-          className={`${fieldClass} flex-1`}
+          placeholder="Titular de la tarjeta"
+          className={fieldClass}
         />
-      </div>
-      <input
-        id="form-checkout__cardholderEmail"
-        type="email"
-        placeholder="E-mail"
-        className={fieldClass}
-      />
+        <select id="form-checkout__issuer" className={fieldClass} />
+        <select id="form-checkout__installments" className={fieldClass} />
+        <div className="flex gap-3">
+          <select
+            id="form-checkout__identificationType"
+            className={`${fieldClass} w-28`}
+          />
+          <input
+            id="form-checkout__identificationNumber"
+            type="text"
+            placeholder="Número de documento"
+            className={`${fieldClass} flex-1`}
+          />
+        </div>
+        <input
+          id="form-checkout__cardholderEmail"
+          type="email"
+          placeholder="E-mail"
+          className={fieldClass}
+        />
 
-      {errorMessage ? (
-        <p className="text-sm text-red-700 dark:text-red-400">{errorMessage}</p>
-      ) : null}
+        {errorMessage ? (
+          <p className="text-sm text-red-700 dark:text-red-400">{errorMessage}</p>
+        ) : null}
 
-      <button
-        id="form-checkout__submit"
-        type="submit"
-        disabled={status === "loading-sdk" || status === "submitting" || status === "error"}
-        className="mt-2 flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
-      >
-        {status === "submitting"
-          ? "Procesando..."
-          : status === "loading-sdk"
-            ? "Cargando..."
-            : "Pagar"}
-      </button>
-    </form>
+        <button
+          id="form-checkout__submit"
+          type="submit"
+          disabled={status === "loading-sdk" || status === "submitting" || status === "error"}
+          className="mt-2 flex h-11 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
+        >
+          {status === "submitting"
+            ? "Procesando..."
+            : status === "loading-sdk"
+              ? "Cargando..."
+              : "Pagar"}
+        </button>
+
+        <p className="flex items-center justify-center gap-1.5 text-xs text-zinc-500">
+          <LockIcon className="h-3.5 w-3.5" />
+          Pago encriptado y procesado por Mercado Pago
+        </p>
+      </form>
+    </div>
   );
 }
