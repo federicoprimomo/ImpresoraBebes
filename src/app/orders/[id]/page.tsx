@@ -13,17 +13,44 @@ import { AdminDisputeResolution } from "@/components/admin-dispute-resolution";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING_PAYMENT: "Procesando pago",
-  PAYMENT_FAILED: "Pago rechazado",
-  PAYMENT_HELD: "Pago retenido — esperando que el vendedor entregue",
-  DELIVERED: "Entregada — esperando confirmación o vencimiento del plazo",
-  RELEASED: "Liberada — el vendedor ya cobró",
-  DISPUTED: "En disputa",
-  REFUNDED: "Reembolsada al comprador",
-  EXPIRED: "Vencida (venció el plazo de Mercado Pago sin capturarse)",
-  CANCELLED: "Cancelada",
-};
+/**
+ * En 2da persona para quien corresponda ("tenés que subir", "ya cobraste")
+ * en vez de siempre en 3ra persona — antes decía "el vendedor ya cobró"
+ * incluso mirándolo desde la cuenta del propio vendedor. Un admin que no
+ * es ninguna de las dos partes sigue viendo la versión neutra en 3ra
+ * persona (ver default en cada branch).
+ */
+function getStatusLabel(
+  status: string,
+  viewer: { isBuyer: boolean; isSeller: boolean },
+): string {
+  switch (status) {
+    case "PENDING_PAYMENT":
+      return "Procesando pago";
+    case "PAYMENT_FAILED":
+      return "Pago rechazado";
+    case "PAYMENT_HELD":
+      return viewer.isSeller
+        ? "Pago retenido — subí la entrada para poder cobrar"
+        : "Pago retenido — esperando que el vendedor entregue";
+    case "DELIVERED":
+      return viewer.isBuyer
+        ? "Entregada — descargala para confirmar"
+        : "Entregada — esperando que el comprador confirme";
+    case "RELEASED":
+      return viewer.isSeller ? "Liberada — ya cobraste" : "Liberada — el vendedor ya cobró";
+    case "DISPUTED":
+      return "En disputa";
+    case "REFUNDED":
+      return viewer.isBuyer ? "Reembolsada — te devolvimos el pago" : "Reembolsada al comprador";
+    case "EXPIRED":
+      return "Vencida (venció el plazo de Mercado Pago sin capturarse)";
+    case "CANCELLED":
+      return "Cancelada";
+    default:
+      return status;
+  }
+}
 
 export default async function OrderDetailPage({
   params,
@@ -134,7 +161,7 @@ export default async function OrderDetailPage({
         {isBuyer ? "Compra" : "Venta"} · {order.listing.title}
       </p>
       <h1 className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-        {STATUS_LABELS[order.status] ?? order.status}
+        {getStatusLabel(order.status, { isBuyer, isSeller })}
       </h1>
 
       {order.lastPaymentError ? (
@@ -252,9 +279,9 @@ export default async function OrderDetailPage({
                 href={`/api/orders/${order.id}/download`}
                 confirmMessage={
                   "Al descargar la entrada confirmás que:\n\n" +
-                  "• Te contactaste con el vendedor (WhatsApp, teléfono, etc.) y estás conforme con lo que recibiste.\n" +
-                  "• A partir de ahora ya NO vas a poder abrir un reclamo para esta compra.\n" +
-                  "• Arranca la cuenta regresiva para liberar el pago al vendedor.\n\n" +
+                  "• Revisaste que la entrada es correcta y estás conforme con lo que recibiste.\n" +
+                  "• Le das el visto bueno a esta compra: a partir de ahora ya NO vas a poder abrir un reclamo, ni contra el vendedor ni contra Escrow.ar.\n" +
+                  "• El pago se libera al vendedor en este mismo momento — no hay vuelta atrás.\n\n" +
                   "¿Confirmás que querés descargarla?"
                 }
                 className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
@@ -262,10 +289,10 @@ export default async function OrderDetailPage({
                 Descargar entrada
               </ConfirmDownloadLink>
               <p className="mt-3 text-xs text-zinc-500">
-                Revisá la entrada antes de descargar — al hacerlo, confirmás
-                que la recibiste correctamente y ya no vas a poder abrir un
-                reclamo. Ahí también arranca la cuenta regresiva para
-                liberar el pago al vendedor.
+                Revisá la entrada ANTES de descargar — al hacerlo, das tu
+                consentimiento de que la recibiste correctamente y renunciás
+                a reclamar (ni al vendedor, ni a Escrow.ar). El pago se
+                libera al vendedor en el momento, sin plazo de espera.
               </p>
             </>
           )}
