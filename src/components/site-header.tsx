@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { auth, signOut } from "@/auth";
 import { LockIcon } from "@/components/icons";
+import { MobileNav } from "@/components/mobile-nav";
 import { isPublicBrowsingEnabled } from "@/lib/site-content";
 import { countPendingActionOrders } from "@/lib/order-actions";
 
@@ -13,6 +14,18 @@ export async function SiteHeader() {
   const pendingActionCount = session?.user
     ? await countPendingActionOrders(session.user.id)
     : 0;
+
+  // Los links de acá abajo se ocultaban del todo en mobile (`hidden
+  // sm:inline`) sin ninguna forma de llegar a ellos salvo pidiendo "vista
+  // de escritorio" — van también al menú de hamburguesa de MobileNav.
+  const mobileLinks = session?.user
+    ? [
+        { href: "/listings/mine", label: "Mis publicaciones" },
+        { href: "/orders", label: "Mis compras/ventas", badge: pendingActionCount },
+        { href: "/account/mercadopago", label: "Cobrar con MP" },
+        ...(session.user.role === "ADMIN" ? [{ href: "/admin", label: "Admin" }] : []),
+      ]
+    : [];
 
   return (
     <header className="sticky top-0 z-10 border-b border-black/10 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80">
@@ -61,6 +74,7 @@ export async function SiteHeader() {
                   Admin
                 </Link>
               ) : null}
+              <MobileNav links={mobileLinks} />
               <Link
                 href="/listings/new"
                 className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-hover"

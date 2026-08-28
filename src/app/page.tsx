@@ -43,7 +43,7 @@ const buyerSteps = [
   {
     icon: ScaleIcon,
     title: "Confirmás o reclamás",
-    body: "Si está todo bien, no hacés nada: se libera sola. Si algo no cierra, abrís un reclamo y lo revisa una persona antes de que se le pague al vendedor.",
+    body: "Revisá la entrada y descargala para confirmar — eso libera el pago al vendedor en el momento. Si algo no cierra, abrí un reclamo ANTES de descargar, y lo revisa una persona antes de que se le pague al vendedor.",
   },
 ];
 
@@ -61,15 +61,15 @@ const sellerSteps = [
   {
     icon: LockIcon,
     title: "Cobrás cuando se confirma",
-    body: "Apenas se confirma la entrega (o pasa el plazo sin reclamos), Mercado Pago te libera el pago automáticamente, menos la comisión.",
+    body: "Apenas el comprador descarga la entrada (su confirmación), Mercado Pago te libera el pago al instante, menos la comisión.",
   },
 ];
 
 const moneyTimeline = [
   { label: "Autorizado", detail: "El comprador paga; Mercado Pago retiene el monto." },
   { label: "Entregado", detail: "El vendedor sube la entrada a la plataforma." },
-  { label: "Ventana de reclamo", detail: "El comprador descarga y tiene tiempo para avisar si algo no cierra." },
-  { label: "Liberado", detail: "Sin reclamos, el pago pasa a la cuenta del vendedor solo." },
+  { label: "Confirmación", detail: "El comprador revisa la entrada y, si está todo bien, la descarga." },
+  { label: "Liberado", detail: "Al descargar, el pago pasa a la cuenta del vendedor en el momento." },
 ];
 
 const trustPoints = [
@@ -332,9 +332,11 @@ export default async function Home() {
             ))}
           </div>
           <p className="mt-8 text-center text-sm text-zinc-500">
-            Si el comprador reclama antes de que se libere, el recorrido se
-            frena ahí: un admin decide si sigue hasta &quot;Liberado&quot; o si la
-            autorización se cancela y la plata nunca sale de la tarjeta.
+            Si el comprador detecta un problema, tiene que reclamar ANTES de
+            descargar la entrada — ahí el recorrido se frena: un admin
+            decide si sigue hasta &quot;Liberado&quot; o si la autorización se
+            cancela y la plata nunca sale de la tarjeta. Una vez descargada,
+            ya no se puede reclamar.
           </p>
         </div>
       </section>

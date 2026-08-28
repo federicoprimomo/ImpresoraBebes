@@ -7,7 +7,6 @@ import { formatArsCents, formatDateTime } from "@/lib/format";
 import { DeliveryError, uploadDelivery } from "@/lib/delivery";
 import { DisputeError, openDispute } from "@/lib/dispute";
 import { AdminCaptureButton } from "@/components/admin-capture-button";
-import { ConfirmDownloadLink } from "@/components/confirm-download-link";
 import { AdminInvoiceButton } from "@/components/admin-invoice-button";
 import { AdminDisputeResolution } from "@/components/admin-dispute-resolution";
 
@@ -95,14 +94,13 @@ export default async function OrderDetailPage({
     !order.downloadedAt &&
     (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
   const canDownloadDelivery = isBuyer && Boolean(order.delivery);
-  // Descargar la entrada es la confirmación del comprador de que está
-  // conforme (se le avisa explícitamente en el checkbox antes de bajar el
-  // archivo) — a partir de ahí ya no puede abrir un reclamo, mismo criterio
-  // que aplica openDispute() del lado del server.
+  // Descargar es para poder revisar la entrada, no una renuncia a
+  // reclamar — el comprador sigue pudiendo abrir un reclamo después de
+  // descargar, mientras la orden no se haya liberado (mismo criterio que
+  // openDispute() del lado del server, que ya no mira downloadedAt).
   const canOpenDispute =
     isBuyer &&
     !order.dispute &&
-    !order.downloadedAt &&
     (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
 
   async function deliver(formData: FormData) {
@@ -264,37 +262,27 @@ export default async function OrderDetailPage({
             {order.delivery!.fileName}
             {order.downloadedAt
               ? " — ya la descargaste."
-              : " — descargala para confirmar la recepción."}
+              : " — descargala para revisarla."}
           </p>
-          {order.downloadedAt ? (
-            <a
-              href={`/api/orders/${order.id}/download`}
-              className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
-            >
-              Descargar entrada
-            </a>
+          <a
+            href={`/api/orders/${order.id}/download`}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
+          >
+            Descargar entrada
+          </a>
+          {!order.downloadedAt ? (
+            <p className="mt-3 text-xs text-zinc-500">
+              Al descargarla arranca la ventana de 24hs para el pago —
+              revisala bien: si algo no cierra, todavía vas a poder abrir
+              un reclamo durante esa ventana, aunque ya hayas descargado.
+              Sin reclamos, el pago se libera al vendedor cuando pasen las
+              24hs (o antes, si un admin lo confirma).
+            </p>
           ) : (
-            <>
-              <ConfirmDownloadLink
-                href={`/api/orders/${order.id}/download`}
-                confirmMessage={
-                  "Al descargar la entrada confirmás que:\n\n" +
-                  "• Revisaste que la entrada es correcta y estás conforme con lo que recibiste.\n" +
-                  "• Le das el visto bueno a esta compra: a partir de ahora ya NO vas a poder abrir un reclamo, ni contra el vendedor ni contra Escrow.ar.\n" +
-                  "• El pago se libera al vendedor en este mismo momento — no hay vuelta atrás.\n\n" +
-                  "¿Confirmás que querés descargarla?"
-                }
-                className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
-              >
-                Descargar entrada
-              </ConfirmDownloadLink>
-              <p className="mt-3 text-xs text-zinc-500">
-                Revisá la entrada ANTES de descargar — al hacerlo, das tu
-                consentimiento de que la recibiste correctamente y renunciás
-                a reclamar (ni al vendedor, ni a Escrow.ar). El pago se
-                libera al vendedor en el momento, sin plazo de espera.
-              </p>
-            </>
+            <p className="mt-3 text-xs text-zinc-500">
+              Si todavía no se liberó el pago y algo no está bien, podés
+              abrir un reclamo más abajo.
+            </p>
           )}
         </div>
       ) : null}

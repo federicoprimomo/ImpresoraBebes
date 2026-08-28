@@ -3,8 +3,6 @@ import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { deleteFile, readFile, saveFile } from "@/lib/storage";
 import { notifyOrderEvent } from "@/lib/email";
-import { captureOrder } from "@/lib/capture-order";
-import { captureError } from "@/lib/monitoring";
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB — de sobra para un PDF/QR de entrada.
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -110,14 +108,14 @@ export async function uploadDelivery(input: {
 }
 
 /**
- * El comprador descarga la entrada. Descargar es su confirmación final
- * (ver ConfirmDownloadLink / openDispute — ya no puede reclamar después
- * de esto), así que la primera descarga captura el pago ya mismo, no
- * después de un plazo. RELEASE_TIMEOUT_HOURS queda como red de
- * seguridad: si la captura inmediata falla por lo que sea (ej. un
- * hiccup de Mercado Pago), releaseDueAt le da al worker de capturas
- * (/api/cron/capture-orders) o a un admin algo para reintentar después,
- * en vez de dejar la orden colgada para siempre.
+ * El comprador descarga la entrada. La primera descarga dispara la
+ * ventana de liberación automática (RELEASE_TIMEOUT_HOURS, 24hs por
+ * defecto) — el comprador sigue pudiendo reclamar durante esa ventana
+ * aunque ya haya descargado (ver openDispute, sin restricción por
+ * downloadedAt a propósito: descargar es para poder revisar la entrada,
+ * no una renuncia a reclamar). El pago se libera con lo que pase
+ * primero: un admin lo libera a mano, o se cumple la ventana sin
+ * reclamo abierto (worker de /api/cron/capture-orders).
  */
 export async function getDeliveryForDownload(input: {
   orderId: string;
@@ -141,7 +139,7 @@ export async function getDeliveryForDownload(input: {
   }
 
   if (!order.downloadedAt) {
-    const timeoutHours = Number(process.env.RELEASE_TIMEOUT_HOURS ?? "48");
+    const timeoutHours = Number(process.env.RELEASE_TIMEOUT_HOURS ?? "24");
     const downloadedAt = new Date();
     const releaseDueAt = new Date(
       downloadedAt.getTime() + timeoutHours * 60 * 60 * 1000,
@@ -152,16 +150,6 @@ export async function getDeliveryForDownload(input: {
     });
 
     await notifyOrderEvent("delivery-downloaded", order.id, { to: "seller" });
-
-    try {
-      await captureOrder(order.id);
-    } catch (error) {
-      // No rompemos la descarga por esto — el comprador ya tiene su
-      // archivo. releaseDueAt queda seteado arriba para que el worker de
-      // capturas (o un admin) lo reintente.
-      console.error(`No se pudo capturar automáticamente la orden ${order.id} al descargar`, error);
-      captureError(error, { orderId: order.id });
-    }
   }
 
   return { file, fileName: order.delivery.fileName };

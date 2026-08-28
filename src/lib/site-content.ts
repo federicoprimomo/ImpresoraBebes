@@ -24,7 +24,7 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
 
   "legal.terminos.body": `# Qué es Escrow.ar
 
-Escrow.ar es una plataforma que intermedia la reventa de entradas digitales entre un comprador y un vendedor. El pago se procesa a través de Mercado Pago: queda autorizado y retenido, y se libera al vendedor recién cuando la entrada fue entregada y confirmada, o vence el plazo de reclamo sin objeciones. Escrow.ar no es la organizadora del evento ni garantiza la validez de la entrada más allá del proceso de entrega y disputa descripto en esta plataforma.
+Escrow.ar es una plataforma que intermedia la reventa de entradas digitales entre un comprador y un vendedor. El pago se procesa a través de Mercado Pago: queda autorizado y retenido, y se libera al vendedor recién cuando el comprador confirma que recibió la entrada correctamente (descargándola), o cuando un administrador resuelve un reclamo a favor del vendedor. Escrow.ar no es la organizadora del evento ni garantiza la validez de la entrada más allá del proceso de entrega y disputa descripto en esta plataforma.
 
 # Cuentas y verificación
 
@@ -36,9 +36,11 @@ Escrow.ar cobra una comisión del 10% sobre el precio de venta, a cargo del vend
 
 Aparte de esa comisión, Mercado Pago cobra su propio costo por procesar el cobro con tarjeta — varía según la cuenta del vendedor y el plazo de acreditación elegido, y no lo fija Escrow.ar. Ese costo también se descuenta de lo que recibe el vendedor. El monto exacto se confirma recién cuando el pago se libera; hasta ese momento, cualquier estimación mostrada en la plataforma es aproximada.
 
-# Entrega y reclamos
+# Entrega, confirmación y reclamos
 
-El vendedor entrega la entrada subiéndola a la plataforma. El comprador tiene una ventana de tiempo desde la descarga para reportar un problema. Mientras el reclamo esté abierto, el pago permanece retenido. Un administrador de la plataforma revisa cada reclamo y decide si corresponde liberar el pago al vendedor o cancelar la autorización.
+El vendedor entrega la entrada subiéndola a la plataforma. A partir de ahí, el comprador tiene que revisarla ANTES de descargarla: descargar la entrada es su confirmación expresa de que la recibió correctamente, y libera el pago al vendedor en ese mismo momento. Al descargar, el comprador renuncia a reclamar por esa compra tanto al vendedor como a Escrow.ar — no hay una ventana posterior para arrepentirse ni reportar un problema después de haber descargado.
+
+Si el comprador detecta un problema (la entrada no llegó, es inválida, o algo no cierra), tiene que reportarlo ANTES de descargarla — una vez abierto el reclamo, el pago queda retenido y un administrador de la plataforma lo revisa, decidiendo si corresponde liberar el pago al vendedor o cancelar la autorización.
 
 El pago del comprador queda autorizado y retenido, pero no se cobra de verdad hasta que se libera — recién en ese momento Mercado Pago lo captura y se aplican las comisiones (la de Escrow.ar y la de Mercado Pago). Si un reclamo se resuelve cancelando la autorización, no hay nada que reembolsar porque nunca hubo un cobro: el comprador no pierde el precio de la entrada ni ninguna comisión.
 
@@ -87,7 +89,7 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
   {
     question: "¿Qué pasa si la entrada que me mandaron es falsa o ya fue usada?",
     answer:
-      "Tenés una ventana de tiempo después de descargarla para reclamar. Mientras el reclamo esté abierto, el pago sigue retenido — no se libera. Un administrador revisa el caso y decide si corresponde liberar el pago al vendedor o cancelar la operación.",
+      "Revisala ANTES de descargarla desde la plataforma: si algo no cierra, abrí un reclamo ahí mismo en vez de descargar. Mientras el reclamo esté abierto, el pago sigue retenido — no se libera. Un administrador revisa el caso y decide si corresponde liberar el pago al vendedor o cancelar la operación. Importante: una vez que descargás la entrada, eso cuenta como tu confirmación de que la recibiste bien, y ya no se puede abrir un reclamo después.",
   },
   {
     question: "¿Qué pasa si el vendedor nunca sube la entrada?",
@@ -118,7 +120,7 @@ export const FAQ_DEFAULTS: Array<{ question: string; answer: string }> = [
   {
     question: "¿Cuánto tarda en liberarse el pago al vendedor?",
     answer:
-      "Apenas se confirma la entrega, o automáticamente al vencer la ventana de reclamo si el comprador no dijo nada. Mercado Pago pone un límite máximo de 7 días desde el pago para capturarlo — pasado ese plazo sin resolverse, la operación se cae y nadie cobra.",
+      "Apenas el comprador descarga la entrada (eso ya cuenta como su confirmación) el pago se libera al vendedor en el momento, sin ningún plazo de espera. Si el comprador nunca descarga ni reclama, Mercado Pago pone un límite máximo de 7 días desde el pago para capturarlo — pasado ese plazo sin resolverse, la operación se cae y nadie cobra.",
   },
   {
     question: "¿Quién paga la comisión, el comprador o el vendedor?",

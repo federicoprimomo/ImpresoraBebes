@@ -60,13 +60,13 @@ Ver la orden: {{orderUrl}}`,
   },
   "delivery-ready": {
     subject: 'Tu entrada de "{{listingTitle}}" ya está lista',
-    body: `El vendedor subió la entrada de "{{listingTitle}}". Descargala para confirmar la recepción — desde la descarga arranca el plazo para reportar un problema si algo no cierra.
+    body: `El vendedor subió la entrada de "{{listingTitle}}". Revisala bien ANTES de descargar: al descargarla confirmás que la recibiste correctamente, y ya no vas a poder abrir un reclamo (ni al vendedor, ni a Escrow.ar) — el pago se libera al vendedor en ese mismo momento. Si algo no cierra, reportalo antes de descargar.
 
 Descargar: {{orderUrl}}`,
   },
   "delivery-downloaded": {
     subject: 'El comprador descargó la entrada de "{{listingTitle}}"',
-    body: `El comprador ya descargó la entrada de "{{listingTitle}}". Si no reporta un problema antes de que venza el plazo, el pago se libera solo.
+    body: `El comprador descargó la entrada de "{{listingTitle}}", confirmando que la recibió correctamente. Estamos liberando el pago a tu cuenta ahora mismo — te llega otro mail apenas se acredite.
 
 Ver la orden: {{orderUrl}}`,
   },

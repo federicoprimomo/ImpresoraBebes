@@ -11,11 +11,6 @@ export default async function TerminosPage() {
       <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
         Términos y condiciones
       </h1>
-      <p className="mt-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-        Borrador de referencia — describe cómo funciona el servicio tal
-        como está construido hoy. No reemplaza una revisión por un
-        abogado antes de publicarse como términos vinculantes.
-      </p>
 
       <SimpleMarkdown
         text={body}
