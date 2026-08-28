@@ -59,7 +59,7 @@ export default async function CheckoutPage({
       </div>
 
       <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-500">
-        Se paga con tarjeta de crédito o débito — no se acepta el saldo de
+        Se paga con tarjeta de crédito (no débito) — no se acepta el saldo de
         tu cuenta de Mercado Pago, transferencia ni efectivo. La comisión
         de la plataforma la paga el vendedor, nunca se te suma acá. Si
         elegís pagar en cuotas con interés, el total que te cobre tu

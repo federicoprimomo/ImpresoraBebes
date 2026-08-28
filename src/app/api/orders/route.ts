@@ -12,7 +12,7 @@ import {
   SellerNotConnectedError,
 } from "@/lib/connected-account";
 import { createReservePayment } from "@/lib/mercadopago";
-import { describePaymentRejection } from "@/lib/payment-status-messages";
+import { describePaymentRejection, describePaymentApiError } from "@/lib/payment-status-messages";
 import { notifyOrderEvent } from "@/lib/email";
 
 // Ver docs/tarjetas-de-prueba de Mercado Pago — 7 días es el límite de MP
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
       error instanceof SellerNotConnectedError
         ? "El vendedor no tiene una cuenta de Mercado Pago conectada."
         : error instanceof MercadoPagoError
-          ? error.message
+          ? describePaymentApiError(error.message)
           : "No pudimos procesar el pago. Probá de nuevo.";
 
     await prisma.$transaction([

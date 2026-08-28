@@ -33,6 +33,11 @@ const OBSOLETE_FAQ_QUESTIONS = [
   // Mercado Pago y que solo se acepta tarjeta — ver commit "Aclarar forma
   // de pago y cuotas con interés".
   "¿Por qué no acepta transferencia o efectivo?",
+  // Reemplazada por una versión que aclara que tampoco se acepta débito
+  // (solo tarjeta de crédito) — el modelo de retención necesita autorizar
+  // sin capturar, algo que débito no admite (confirmado con Mercado Pago
+  // devolviendo "deferred capture not supported" al intentarlo).
+  "¿Por qué no acepta transferencia, dinero en cuenta ni efectivo?",
 ];
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL;

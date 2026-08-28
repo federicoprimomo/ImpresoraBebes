@@ -28,3 +28,20 @@ export function describePaymentRejection(statusDetail?: string | null): string {
   if (!statusDetail) return "El pago fue rechazado.";
   return MESSAGES[statusDetail] ?? "El pago fue rechazado.";
 }
+
+/**
+ * A diferencia de `describePaymentRejection` (para un pago que Mercado Pago
+ * sí llegó a crear, con un status_detail), esto es para cuando la llamada a
+ * `payment.create()` explota antes de eso — el caso real que motivó esto:
+ * "deferred capture not supported", que tira Mercado Pago cuando la
+ * tarjeta/medio de pago no admite `capture: false` (retener sin cobrar).
+ * En Argentina esto pasa típicamente con tarjetas de débito — el modelo
+ * completo de Escrow.ar (retener hasta la entrega) depende de poder
+ * autorizar sin capturar, así que esas tarjetas no son compatibles.
+ */
+export function describePaymentApiError(message: string): string {
+  if (/deferred capture/i.test(message)) {
+    return "Esta tarjeta no admite este tipo de pago (autorizar y retener) — probá con una tarjeta de CRÉDITO de otro banco. Las tarjetas de débito no son compatibles con Escrow.ar.";
+  }
+  return "No pudimos procesar el pago. Probá de nuevo.";
+}
