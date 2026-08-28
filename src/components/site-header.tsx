@@ -3,10 +3,16 @@ import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { LockIcon } from "@/components/icons";
 import { isPublicBrowsingEnabled } from "@/lib/site-content";
+import { countPendingActionOrders } from "@/lib/order-actions";
 
 export async function SiteHeader() {
   const [session, publicBrowsing] = await Promise.all([auth(), isPublicBrowsingEnabled()]);
   const canSeeListingsLink = publicBrowsing || session?.user?.role === "ADMIN";
+  // Cuántas compras/ventas están esperando que este usuario suba o
+  // descargue la entrega — para que no se le pase apenas entra al sitio.
+  const pendingActionCount = session?.user
+    ? await countPendingActionOrders(session.user.id)
+    : 0;
 
   return (
     <header className="sticky top-0 z-10 border-b border-black/10 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80">
@@ -33,8 +39,16 @@ export async function SiteHeader() {
               >
                 Mis publicaciones
               </Link>
-              <Link href="/orders" className="hidden hover:text-zinc-950 sm:inline dark:hover:text-zinc-50">
+              <Link
+                href="/orders"
+                className="relative hidden hover:text-zinc-950 sm:inline dark:hover:text-zinc-50"
+              >
                 Mis compras/ventas
+                {pendingActionCount > 0 ? (
+                  <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-brand-foreground">
+                    {pendingActionCount}
+                  </span>
+                ) : null}
               </Link>
               <Link
                 href="/account/mercadopago"

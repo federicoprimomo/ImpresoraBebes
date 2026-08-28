@@ -192,8 +192,10 @@ export default async function OrderDetailPage({
             {order.delivery ? "Reemplazar la entrada subida" : "Subir la entrada"}
           </p>
           <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-            PDF, PNG, JPG o WEBP, hasta 8MB. Una vez que el comprador la
-            descargue, no se va a poder reemplazar.
+            PDF, PNG, JPG o WEBP, hasta 8MB. Al subirla, le avisamos por mail
+            al comprador para que la descargue — recién ahí arranca el
+            plazo para liberar el pago. Una vez que la descargue, no se va
+            a poder reemplazar.
           </p>
           <form action={deliver} className="mt-3 flex flex-col gap-3 sm:flex-row">
             <input
