@@ -102,7 +102,10 @@ model ConnectedAccount {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  mpUserId Int? // user_id de Mercado Pago del vendedor, para logs/soporte
+  // BigInt porque el user_id de Mercado Pago puede superar el rango de un
+  // Int de 32 bits (ej. cuentas de prueba con ids de 10 dígitos) — con Int
+  // el upsert fallaba en seco al conectar, ver commit de este fix.
+  mpUserId BigInt? // user_id de Mercado Pago del vendedor, para logs/soporte
 
   // Tokens encriptados (ver src/lib/mp-crypto.ts) — nunca se guardan en claro.
   accessTokenEnc       String    @db.Text

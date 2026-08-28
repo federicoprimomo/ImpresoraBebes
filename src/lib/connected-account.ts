@@ -14,7 +14,7 @@ export async function saveConnectedAccount(userId: string, tokens: OAuthTokens) 
     where: { userId },
     create: {
       userId,
-      mpUserId: tokens.mpUserId,
+      mpUserId: tokens.mpUserId !== undefined ? BigInt(tokens.mpUserId) : undefined,
       accessTokenEnc: encryptToken(tokens.accessToken),
       refreshTokenEnc: encryptToken(tokens.refreshToken),
       accessTokenExpiresAt,
@@ -24,7 +24,7 @@ export async function saveConnectedAccount(userId: string, tokens: OAuthTokens) 
       status: "CONNECTED",
     },
     update: {
-      mpUserId: tokens.mpUserId,
+      mpUserId: tokens.mpUserId !== undefined ? BigInt(tokens.mpUserId) : undefined,
       accessTokenEnc: encryptToken(tokens.accessToken),
       refreshTokenEnc: encryptToken(tokens.refreshToken),
       accessTokenExpiresAt,
