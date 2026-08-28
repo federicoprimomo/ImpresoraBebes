@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { formatArsCents, formatDateTime } from "@/lib/format";
 import { isEventPast } from "@/lib/listing";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { WhatsAppIcon } from "@/components/icons";
 import { pauseListing, resumeListing, cancelListing } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const actionButtonClass =
-  "flex h-8 items-center justify-center rounded-full border border-black/10 px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/[.04] dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/[.06]";
+  "flex h-8 items-center justify-center gap-1.5 rounded-full border border-black/10 px-3 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/[.04] dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/[.06]";
 
 export default async function MyListingsPage() {
   const session = await auth();
@@ -62,6 +64,8 @@ export default async function MyListingsPage() {
           {listings.map((listing) => {
             const eventPast = isEventPast(listing.eventDate);
             const canEdit = listing.status === "ACTIVE" || listing.status === "PAUSED";
+            const listingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/listings/${listing.id}`;
+            const whatsappText = `¡Mirá esta entrada en Escrow.ar! ${listing.title} — ${formatArsCents(listing.priceArs)}\n${listingUrl}`;
 
             return (
               <li
@@ -97,6 +101,19 @@ export default async function MyListingsPage() {
                     {formatArsCents(listing.priceArs)}
                   </p>
                 </Link>
+
+                <div className="flex flex-wrap gap-2 border-t border-black/10 pt-3 dark:border-white/10">
+                  <CopyLinkButton url={listingUrl} className={actionButtonClass} />
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={actionButtonClass}
+                  >
+                    <WhatsAppIcon className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </div>
 
                 {canEdit ? (
                   <div className="flex flex-wrap gap-2 border-t border-black/10 pt-3 dark:border-white/10">

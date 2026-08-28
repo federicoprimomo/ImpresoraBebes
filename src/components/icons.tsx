@@ -176,6 +176,26 @@ export function WhatsAppIcon({ className = base }: IconProps) {
   );
 }
 
+export function LinkIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M9.5 14.5l5-5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11 6.5l1.1-1.1a4 4 0 015.66 5.66L16.5 12.2M13 17.5l-1.1 1.1a4 4 0 01-5.66-5.66L7.5 11.8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function MailIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
