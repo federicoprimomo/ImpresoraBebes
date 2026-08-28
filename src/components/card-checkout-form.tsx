@@ -28,7 +28,23 @@ declare global {
       cardForm: (config: {
         amount: string;
         iframe: boolean;
-        form: Record<string, { id: string; placeholder?: string }>;
+        // El SDK necesita el id del <form> que envuelve todo (para inyectar
+        // inputs ocultos ahí), aparte del id de cada campo individual — sin
+        // esto tira "Required field \"id\" is missing" y nunca dispara
+        // onFormMounted, dejando el botón trabado en "Cargando..." para
+        // siempre (no hay manejo de este error específico).
+        form: {
+          id: string;
+          cardNumber: { id: string; placeholder?: string };
+          expirationDate: { id: string; placeholder?: string };
+          securityCode: { id: string; placeholder?: string };
+          cardholderName: { id: string; placeholder?: string };
+          issuer: { id: string };
+          installments: { id: string };
+          identificationType: { id: string };
+          identificationNumber: { id: string; placeholder?: string };
+          cardholderEmail: { id: string; placeholder?: string };
+        };
         callbacks: {
           onFormMounted: (error?: unknown) => void;
           onSubmit: (event: Event) => void;
@@ -82,6 +98,7 @@ export function CardCheckoutForm({
         amount: String(amountArs / 100),
         iframe: true,
         form: {
+          id: "form-checkout",
           cardNumber: {
             id: "form-checkout__cardNumber",
             placeholder: "Número de tarjeta",
@@ -164,6 +181,15 @@ export function CardCheckoutForm({
       });
     }
 
+    function onScriptError() {
+      if (cancelled) return;
+      // Sin esto, si el script del SDK no carga (red, bloqueo del
+      // navegador, etc.) el botón se queda en "Cargando..." para siempre
+      // sin ninguna pista de qué pasó.
+      setErrorMessage("No pudimos cargar Mercado Pago. Recargá la página e intentá de nuevo.");
+      setStatus("error");
+    }
+
     if (window.MercadoPago) {
       initCardForm();
     } else {
@@ -177,6 +203,7 @@ export function CardCheckoutForm({
         document.body.appendChild(script);
       }
       script.addEventListener("load", initCardForm);
+      script.addEventListener("error", onScriptError);
     }
 
     return () => {
