@@ -7,6 +7,7 @@ import { formatArsCents, formatDateTime } from "@/lib/format";
 import { DeliveryError, uploadDelivery } from "@/lib/delivery";
 import { DisputeError, openDispute } from "@/lib/dispute";
 import { AdminCaptureButton } from "@/components/admin-capture-button";
+import { ConfirmDownloadLink } from "@/components/confirm-download-link";
 import { AdminInvoiceButton } from "@/components/admin-invoice-button";
 import { AdminDisputeResolution } from "@/components/admin-dispute-resolution";
 
@@ -67,9 +68,14 @@ export default async function OrderDetailPage({
     !order.downloadedAt &&
     (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
   const canDownloadDelivery = isBuyer && Boolean(order.delivery);
+  // Descargar la entrada es la confirmación del comprador de que está
+  // conforme (se le avisa explícitamente en el checkbox antes de bajar el
+  // archivo) — a partir de ahí ya no puede abrir un reclamo, mismo criterio
+  // que aplica openDispute() del lado del server.
   const canOpenDispute =
     isBuyer &&
     !order.dispute &&
+    !order.downloadedAt &&
     (order.status === "PAYMENT_HELD" || order.status === "DELIVERED");
 
   async function deliver(formData: FormData) {
@@ -233,19 +239,36 @@ export default async function OrderDetailPage({
               ? " — ya la descargaste."
               : " — descargala para confirmar la recepción."}
           </p>
-          <a
-            href={`/api/orders/${order.id}/download`}
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
-          >
-            Descargar entrada
-          </a>
-          {!order.downloadedAt ? (
-            <p className="mt-3 text-xs text-zinc-500">
-              Al descargarla arranca la cuenta regresiva para la liberación
-              automática del pago al vendedor, salvo que abras un reclamo
-              antes.
-            </p>
-          ) : null}
+          {order.downloadedAt ? (
+            <a
+              href={`/api/orders/${order.id}/download`}
+              className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
+            >
+              Descargar entrada
+            </a>
+          ) : (
+            <>
+              <ConfirmDownloadLink
+                href={`/api/orders/${order.id}/download`}
+                confirmMessage={
+                  "Al descargar la entrada confirmás que:\n\n" +
+                  "• Te contactaste con el vendedor (WhatsApp, teléfono, etc.) y estás conforme con lo que recibiste.\n" +
+                  "• A partir de ahora ya NO vas a poder abrir un reclamo para esta compra.\n" +
+                  "• Arranca la cuenta regresiva para liberar el pago al vendedor.\n\n" +
+                  "¿Confirmás que querés descargarla?"
+                }
+                className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
+              >
+                Descargar entrada
+              </ConfirmDownloadLink>
+              <p className="mt-3 text-xs text-zinc-500">
+                Revisá la entrada antes de descargar — al hacerlo, confirmás
+                que la recibiste correctamente y ya no vas a poder abrir un
+                reclamo. Ahí también arranca la cuenta regresiva para
+                liberar el pago al vendedor.
+              </p>
+            </>
+          )}
         </div>
       ) : null}
 
@@ -287,7 +310,8 @@ export default async function OrderDetailPage({
           <p className="font-medium">¿Algo no está bien?</p>
           <p className="mt-1 text-zinc-600 dark:text-zinc-400">
             Si la entrada no llegó, es inválida, o algo no cierra, contanos
-            antes de que se libere el pago solo. Un admin lo va a revisar.
+            antes de descargarla — una vez que la descargues, ya no vas a
+            poder abrir un reclamo. Un admin lo va a revisar.
           </p>
           <form action={reportIssue} className="mt-3 flex flex-col gap-3">
             <textarea

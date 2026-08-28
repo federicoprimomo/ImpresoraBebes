@@ -37,6 +37,14 @@ export async function openDispute(input: {
   if (order.dispute) {
     throw new DisputeError("Ya hay un reclamo abierto para esta orden.");
   }
+  // Descargar la entrada es la confirmación del comprador de que está
+  // conforme (se le avisa antes de bajar el archivo) — ya no se puede
+  // reclamar después de eso.
+  if (order.downloadedAt) {
+    throw new DisputeError(
+      "Ya descargaste la entrada, confirmando que la recibiste correctamente — no se puede abrir un reclamo después de eso.",
+    );
+  }
   if (!input.reason.trim()) {
     throw new DisputeError("Contá el motivo del reclamo.");
   }
