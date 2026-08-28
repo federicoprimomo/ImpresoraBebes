@@ -25,23 +25,16 @@ function sellerConfig(sellerAccessToken: string): MercadoPagoConfig {
 
 // Nuestra aplicación de Mercado Pago no tiene un Client ID/Client Secret
 // separado para pruebas (solo existen en "Credenciales de producción") —
-// sin este flag, /oauth/token siempre devuelve tokens en live_mode: true
-// sin importar con qué cuenta se autorice, aunque sea una Cuenta de Prueba.
-// El endpoint acepta un campo `test: true` en el body para pedir
-// explícitamente un token de sandbox; no está en los tipos del SDK de
-// Node, pero el cliente HTTP subyacente serializa cualquier campo extra
-// del body tal cual, así que alcanza con agregarlo nosotros. Sacar esta
-// env var (o ponerla en "false") antes de conectar cuentas reales.
+// sin esto, /oauth/token siempre devuelve tokens en live_mode: true sin
+// importar con qué cuenta se autorice, aunque sea una Cuenta de Prueba.
+// El SDK expone `requestOptions.testToken` (tipado en `Options`, ver
+// node_modules/mercadopago/dist/types.d.ts) que manda el header
+// `X-Test-Token` — es el mecanismo real para pedir un token de sandbox
+// (un intento anterior mandando `test: true` en el body no tuvo efecto:
+// no es un campo del body, es este header). Sacar esta env var (o
+// ponerla en "false") antes de conectar cuentas reales.
 const OAUTH_TEST_MODE = process.env.MERCADOPAGO_OAUTH_TEST_MODE === "true";
-
-type OAuthTokenBody = {
-  client_id?: string;
-  client_secret?: string;
-  code?: string;
-  refresh_token?: string;
-  redirect_uri?: string;
-  test?: boolean;
-};
+const oauthRequestOptions = OAUTH_TEST_MODE ? { testToken: true } : undefined;
 
 function requireOAuthCredentials() {
   const clientId = process.env.MERCADOPAGO_CLIENT_ID;
@@ -88,16 +81,15 @@ export async function exchangeOAuthCode(code: string): Promise<OAuthTokens> {
   const { clientId, clientSecret } = requireOAuthCredentials();
   const oauth = new OAuth(platformConfig());
 
-  const body: OAuthTokenBody = {
-    client_id: clientId,
-    client_secret: clientSecret,
-    code,
-    redirect_uri: getOAuthRedirectUri(),
-  };
-  if (OAUTH_TEST_MODE) {
-    body.test = true;
-  }
-  const response = await oauth.create({ body });
+  const response = await oauth.create({
+    body: {
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: getOAuthRedirectUri(),
+    },
+    requestOptions: oauthRequestOptions,
+  });
 
   if (!response.access_token || !response.refresh_token) {
     throw new Error("Mercado Pago no devolvió access_token/refresh_token.");
@@ -120,15 +112,14 @@ export async function refreshOAuthTokens(
   const { clientId, clientSecret } = requireOAuthCredentials();
   const oauth = new OAuth(platformConfig());
 
-  const refreshBody: OAuthTokenBody = {
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-  };
-  if (OAUTH_TEST_MODE) {
-    refreshBody.test = true;
-  }
-  const response = await oauth.refresh({ body: refreshBody });
+  const response = await oauth.refresh({
+    body: {
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+    },
+    requestOptions: oauthRequestOptions,
+  });
 
   if (!response.access_token || !response.refresh_token) {
     throw new Error("Mercado Pago no devolvió access_token/refresh_token al renovar.");
