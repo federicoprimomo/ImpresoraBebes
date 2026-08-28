@@ -5,12 +5,15 @@ import { DeliveryError, getDeliveryForDownload } from "@/lib/delivery";
 import { captureError } from "@/lib/monitoring";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // A propósito NO se arma con `new URL(path, request.url)`: adentro del
+    // contenedor, detrás del proxy de Coolify, request.url refleja el host
+    // interno, no el dominio público. Mismo motivo que oauth/callback.
+    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL));
   }
 
   const { id } = await params;

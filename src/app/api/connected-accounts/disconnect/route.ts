@@ -1,12 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(request: NextRequest) {
+// A propósito NO se arma con `new URL(path, request.url)`: adentro del
+// contenedor, detrás del proxy de Coolify, request.url refleja el host
+// interno (localhost:puerto), no el dominio público — mandaría al
+// navegador a una URL que no existe para él. Mismo motivo que
+// oauth/callback y oauth/start.
+function redirectTo(path: string) {
+  return NextResponse.redirect(new URL(path, process.env.NEXT_PUBLIC_APP_URL));
+}
+
+export async function POST() {
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectTo("/login");
   }
 
   // No borramos los tokens acá (podría haber una orden en curso que todavía
@@ -17,5 +26,5 @@ export async function POST(request: NextRequest) {
     data: { status: "DISCONNECTED", disconnectedAt: new Date() },
   });
 
-  return NextResponse.redirect(new URL("/account/mercadopago", request.url));
+  return redirectTo("/account/mercadopago");
 }
